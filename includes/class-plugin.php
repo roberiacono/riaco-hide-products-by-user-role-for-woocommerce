@@ -9,6 +9,7 @@ namespace Riaco\HideProducts;
 
 use Riaco\HideProducts\Interfaces\ServiceInterface;
 
+use Riaco\HideProducts\Admin\CustomTaxonomy;
 use Riaco\HideProducts\Admin\ProductVisibilityTab;
 use Riaco\HideProducts\Admin\SettingsPage;
 
@@ -49,6 +50,8 @@ class Plugin {
 		$this->file   = $file;
 		$this->loaded = false;
 
+		$this->services[] = new CustomTaxonomy();
+
 		if ( is_admin() ) {
 			$this->services[] = new ProductVisibilityTab();
 			$this->services[] = new SettingsPage();
@@ -80,7 +83,7 @@ class Plugin {
 
 		$this->register();
 
-		do_action( 'riaco_hpburfw__loaded', $this );
+		do_action( 'riaco_hpburfw_loaded', $this );
 	}
 
 	private function register(): void {

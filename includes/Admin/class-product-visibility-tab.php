@@ -44,15 +44,15 @@ class ProductVisibilityTab implements ServiceInterface {
 	public function render_tab_content(): void {
 		global $post;
 
+		// Nonce for security
+		wp_nonce_field( 'riaco_hpburfw_visibility_save', 'riaco_hpburfw_visibility_nonce' );
+
 		echo '<div id="riaco_visibility_tab" class="panel woocommerce_options_panel hidden">';
 		echo '<div class="option_group" style="padding: 1em 1.5em;">';
 		echo '<h4>' . esc_html__( 'Hide this product for users with this role.', 'riaco-hide-products' ) . '</h4>';
 		echo '</div>';
 
 		echo '<div class="option_group">';
-
-		// Nonce for security
-		wp_nonce_field( 'riaco_visibility_save', 'riaco_visibility_nonce' );
 
 		// Get all roles
 		$roles = wp_roles()->roles;
@@ -62,16 +62,21 @@ class ProductVisibilityTab implements ServiceInterface {
 			$roles
 		);
 
-		$saved_roles = (array) get_post_meta( $post->ID, '_riaco_hpburfw_roles', true );
+		// Get assigned taxonomy terms for this product
+		$assigned_terms = wp_get_object_terms( $post->ID, 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
+		// Normalize for comparison
+		$assigned_terms = is_array( $assigned_terms ) ? $assigned_terms : array();
 
 		// Output checkboxes using WooCommerce helper function
 		foreach ( $roles as $role_key => $role_data ) {
+			$term_slug = 'hide-for-' . $role_key;
+
 			woocommerce_wp_checkbox(
 				array(
-					'id'          => 'riaco_role_' . $role_key,
+					'id'          => 'riaco_hpburfw_role_' . $role_key,
 					'label'       => $role_data['name'],
 					'description' => '',
-					'value'       => in_array( $role_key, $saved_roles, true ) ? 'yes' : 'no',
+					'value'       => in_array( $term_slug, $assigned_terms, true ) ? 'yes' : 'no',
 				)
 			);
 		}
@@ -83,7 +88,8 @@ class ProductVisibilityTab implements ServiceInterface {
 	 * Save the product meta when product is saved
 	 */
 	public function save_product_meta( int $post_id ): void {
-		if ( empty( $_POST['riaco_visibility_nonce'] ) || ! wp_verify_nonce( $_POST['riaco_visibility_nonce'], 'riaco_visibility_save' ) ) {
+		if ( empty( $_POST['riaco_hpburfw_visibility_nonce'] ) || ! wp_verify_nonce( $_POST['riaco_hpburfw_visibility_nonce'], 'riaco_hpburfw_visibility_save' ) ) {
+			// error_log( 'Nonce verification failed for product visibility save.' );
 			return;
 		}
 
@@ -93,15 +99,15 @@ class ProductVisibilityTab implements ServiceInterface {
 			wp_roles()->roles
 		);
 
-		// Delete old role restrictions to prevent duplicates
-		delete_post_meta( $post_id, '_riaco_hpburfw_role' );
+		$terms = array();
 
 		foreach ( $roles_data as $role_key => $role_data ) {
-			$field_id = 'riaco_role_' . $role_key;
-
+			$field_id = 'riaco_hpburfw_role_' . $role_key;
 			if ( ! empty( $_POST[ $field_id ] ) && $_POST[ $field_id ] === 'yes' ) {
-				add_post_meta( $post_id, '_riaco_hpburfw_role', sanitize_key( $role_key ) );
+				$terms[] = 'hide-for-' . sanitize_text_field( $role_key );
 			}
 		}
+
+		wp_set_object_terms( $post_id, $terms, 'riaco_hpburfw_visibility_role', false );
 	}
 }

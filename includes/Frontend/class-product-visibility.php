@@ -19,7 +19,9 @@ class ProductVisibility implements ServiceInterface {
 		// add_action( 'template_redirect', array( $this, 'maybe_hide_structured_data' ), 5 );
 		// add_filter( 'woocommerce_structured_data_enabled', '__return_false' );
 
-		add_action( 'template_redirect', array( $this, 'maybe_hide_product_page_content' ) );
+		add_action( 'template_redirect', array( $this, 'maybe_hide_single_product_page' ) );
+
+		add_filter( 'rest_product_query', array( $this, 'maybe_hide_product_in_rest_api' ), 10, 2 );
 	}
 
 
@@ -55,26 +57,31 @@ class ProductVisibility implements ServiceInterface {
 			return;
 		}
 
-		// Hide products that have any of the user's roles as _riaco_hpburfw_role
+		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
 
-		$meta_query = array(
-			'relation' => 'OR',
+		$taxonomy = 'riaco_hpburfw_visibility_role';
 
-			// Show products with no restriction (no meta key)
+		$tax_query = array(
+
+			// Products that do NOT have a hidden role for the current user
 			array(
-				'key'     => '_riaco_hpburfw_role',
-				'compare' => 'NOT EXISTS',
-			),
-
-			// Show products that are NOT restricted to this user
-			array(
-				'key'     => '_riaco_hpburfw_role',
-				'value'   => $user_roles,
-				'compare' => 'NOT IN',
+				'taxonomy' => $taxonomy,
+				'field'    => 'slug',
+				'terms'    => $hidden_terms,
+				'operator' => 'NOT IN',
 			),
 		);
 
-		$query->set( 'meta_query', $meta_query );
+		/*
+		$existing_tax_query = $query->get( 'tax_query' );
+		if ( ! empty( $existing_tax_query ) ) {
+			$tax_query = array_merge( $existing_tax_query, $tax_query );
+		} */
+
+		// Only apply tax_query if there are roles that could hide products
+		if ( ! empty( $hidden_terms ) ) {
+			$query->set( 'tax_query', $tax_query );
+		}
 	}
 
 	private function get_global_hidden_roles_by_user_roles( $user_roles ) {
@@ -209,7 +216,7 @@ class ProductVisibility implements ServiceInterface {
 		// }
 	} */
 
-	public function maybe_hide_product_page_content(): void {
+	public function maybe_hide_single_product_page(): void {
 		if ( ! is_singular( 'product' ) ) {
 			return;
 		}
@@ -233,6 +240,39 @@ class ProductVisibility implements ServiceInterface {
 			// logged-in but blocked
 			wp_safe_redirect( wc_get_page_permalink( 'shop' ) );
 			exit;
+		} else {
+			// Step 2: check product-specific hidden roles
+			$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
+
+			$assigned_terms = wp_get_object_terms( $post->ID, 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
+			// Normalize for comparison
+			$assigned_terms = is_array( $assigned_terms ) ? $assigned_terms : array();
+
+			if ( array_intersect( $hidden_terms, $assigned_terms ) ) {
+				if ( ! $user->exists() ) {
+					wp_safe_redirect( wp_login_url( get_permalink( $post ) ) );
+					exit;
+				}
+				// logged-in but blocked
+				wp_safe_redirect( wc_get_page_permalink( 'shop' ) );
+				exit;
+			}
 		}
+	}
+
+	public function maybe_hide_product_in_rest_api( $args, $request ) {
+		$user       = wp_get_current_user();
+		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
+
+		// error_log( 'REST API request by user roles: ' . print_r( $user_roles, true ) );
+
+		// Step 1: check global hide settings for each role
+		$global_hidden_roles = $this->get_global_hidden_roles_by_user_roles( $user_roles );
+
+		if ( ! empty( $global_hidden_roles ) ) {
+			$args['post__in'] = array( 0 );
+		}
+
+		return $args;
 	}
 }
