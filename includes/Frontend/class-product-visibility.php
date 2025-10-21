@@ -19,7 +19,7 @@ class ProductVisibility implements ServiceInterface {
 		// add_action( 'template_redirect', array( $this, 'maybe_hide_structured_data' ), 5 );
 		// add_filter( 'woocommerce_structured_data_enabled', '__return_false' );
 
-		add_action( 'template_redirect', array( $this, 'maybe_hide_product_page_content' ) );
+		add_action( 'template_redirect', array( $this, 'maybe_hide_single_product_page' ) );
 	}
 
 
@@ -209,7 +209,7 @@ class ProductVisibility implements ServiceInterface {
 		// }
 	} */
 
-	public function maybe_hide_product_page_content(): void {
+	public function maybe_hide_single_product_page(): void {
 		if ( ! is_singular( 'product' ) ) {
 			return;
 		}
