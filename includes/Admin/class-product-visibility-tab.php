@@ -22,6 +22,9 @@ class ProductVisibilityTab implements ServiceInterface {
 		add_filter( 'woocommerce_product_data_tabs', array( $this, 'add_tab' ) );
 		add_action( 'woocommerce_product_data_panels', array( $this, 'render_tab_content' ) );
 		add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_meta' ) );
+
+		add_action( 'woocommerce_product_after_variable_attributes', array( $this, 'add_variation_visibility_fields' ), 15, 3 );
+		add_action( 'woocommerce_save_product_variation', array( $this, 'save_variation_visibility_fields' ), 15, 2 );
 	}
 
 	/**
@@ -29,8 +32,8 @@ class ProductVisibilityTab implements ServiceInterface {
 	 */
 	public function add_tab( array $tabs ): array {
 		$tabs['riaco_visibility'] = array(
-			'label'    => __( 'Visibility by Role', 'riaco-hide-products' ),
-			'target'   => 'riaco_visibility_tab',
+			'label'    => __( 'Hide by Role', 'riaco-hide-products' ),
+			'target'   => 'riaco_hpburfw_hide_by_role_tab',
 			'class'    => array(),
 			'priority' => 50,
 		);
@@ -47,7 +50,7 @@ class ProductVisibilityTab implements ServiceInterface {
 		// Nonce for security
 		wp_nonce_field( 'riaco_hpburfw_visibility_save', 'riaco_hpburfw_visibility_nonce' );
 
-		echo '<div id="riaco_visibility_tab" class="panel woocommerce_options_panel hidden">';
+		echo '<div id="riaco_hpburfw_hide_by_role_tab" class="panel woocommerce_options_panel hidden">';
 		echo '<div class="option_group" style="padding: 1em 1.5em;">';
 		echo '<h4>' . esc_html__( 'Hide this product for users with this role.', 'riaco-hide-products' ) . '</h4>';
 		echo '</div>';
@@ -109,5 +112,81 @@ class ProductVisibilityTab implements ServiceInterface {
 		}
 
 		wp_set_object_terms( $post_id, $terms, 'riaco_hpburfw_visibility_role', false );
+	}
+
+
+
+	public function add_variation_visibility_fields( $loop, $variation_data, $variation ): void {
+		$taxonomy = 'riaco_hpburfw_visibility_role';
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => $taxonomy,
+				'hide_empty' => false,
+			)
+		);
+
+		if ( empty( $terms ) || is_wp_error( $terms ) ) {
+			echo '<p>' . esc_html__( 'No visibility roles found.', 'riaco-hide-products' ) . '</p>';
+			return;
+		}
+
+		// Move "hide-for-guest" to the top if it exists.
+		usort(
+			$terms,
+			function ( $a, $b ) {
+				if ( $a->slug === 'hide-for-guest' ) {
+					return -1;
+				}
+				if ( $b->slug === 'hide-for-guest' ) {
+					return 1;
+				}
+				return strcasecmp( $a->name, $b->name ); // fallback alphabetical
+			}
+		);
+
+		$current_terms = wp_get_object_terms( $variation->ID, $taxonomy, array( 'fields' => 'slugs' ) );
+
+		echo '<div class="form-row form-row-full">';
+		echo '<h4>' . esc_html__( 'Hide this variation for:', 'riaco-hide-products' ) . '</h4>';
+
+		foreach ( $terms as $term ) {
+			$field_id = 'riaco_hpburfw_term_' . esc_attr( $term->slug ) . "_{$loop}";
+			woocommerce_wp_checkbox(
+				array(
+					'id'    => $field_id,
+					'label' => esc_html( $term->name ),
+					'value' => in_array( $term->slug, $current_terms, true ) ? 'yes' : 'no',
+				)
+			);
+		}
+
+		echo '</div>';
+	}
+
+	public function save_variation_visibility_fields( int $variation_id, int $i ): void {
+		$taxonomy = 'riaco_hpburfw_visibility_role';
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => $taxonomy,
+				'hide_empty' => false,
+			)
+		);
+
+		if ( empty( $terms ) || is_wp_error( $terms ) ) {
+			return;
+		}
+
+		$new_terms = array();
+
+		foreach ( $terms as $term ) {
+			$field_id = 'riaco_hpburfw_term_' . $term->slug . "_{$i}";
+			if ( isset( $_POST[ $field_id ] ) && 'yes' === $_POST[ $field_id ] ) {
+				$new_terms[] = $term->slug;
+			}
+		}
+
+		wp_set_object_terms( $variation_id, $new_terms, $taxonomy, false );
 	}
 }

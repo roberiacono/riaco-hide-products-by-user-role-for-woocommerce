@@ -14,38 +14,82 @@ use Riaco\HideProducts\Interfaces\ServiceInterface;
 
 
 class CustomTaxonomy implements ServiceInterface {
+
+	private $plugin;
+
+	function __construct( $plugin ) {
+		$this->plugin = $plugin;
+	}
+
 	public function register(): void {
 		add_action( 'init', array( $this, 'register_taxonomy' ) );
+		add_action( 'init', array( $this, 'maybe_create_default_terms' ), 11 );
 	}
 
 	public function register_taxonomy(): void {
 		$labels = array(
-			'name'          => __( 'Visibility by Role', 'riaco-hide-products' ),
-			'singular_name' => __( 'Visibility Role', 'riaco-hide-products' ),
-			'search_items'  => __( 'Search Visibility Roles', 'riaco-hide-products' ),
-			'all_items'     => __( 'All Roles', 'riaco-hide-products' ),
-			'edit_item'     => __( 'Edit Role Visibility', 'riaco-hide-products' ),
-			'update_item'   => __( 'Update Role Visibility', 'riaco-hide-products' ),
-			'add_new_item'  => __( 'Add New Role Visibility', 'riaco-hide-products' ),
-			'new_item_name' => __( 'New Role Visibility', 'riaco-hide-products' ),
-			'menu_name'     => __( 'Product Visibility', 'riaco-hide-products' ),
+			'name'          => __( 'Hide by Role', 'riaco-hide-products' ),
+			'singular_name' => __( 'Hide by Role', 'riaco-hide-products' ),
 		);
 
 		register_taxonomy(
-			'riaco_hpburfw_visibility_role',
-			'product',
+			$this->plugin->taxonomy,
 			array(
-				'labels' => $labels,
-				/*
+				'product',
+				'product_variation',
+			),
+			array(
+				'labels'            => $labels,
+
 				'public'            => false,
-				'show_ui'           => false, // hidden from admin menu
+				'show_ui'           => true, // hidden from admin menu
 				'show_in_rest'      => false,
-				'hierarchical'      => false,
+				'hierarchical'      => true,
 				'rewrite'           => false,
 				'show_admin_column' => false,
-				'query_var'    => true,
-				'capabilities' => array(),*/
+				'query_var'         => false,
+				'capabilities'      => array(
+					'manage_terms' => 'manage_woocommerce',
+					'edit_terms'   => 'manage_woocommerce',
+					'delete_terms' => 'manage_woocommerce',
+					'assign_terms' => 'manage_woocommerce',
+				),
 			)
 		);
+	}
+	/**
+	 * Create default terms for all user roles (including guest).
+	 */
+	public function maybe_create_default_terms(): void {
+		$taxonomy = $this->plugin->taxonomy;
+
+		// Ensure taxonomy is registered first
+		if ( ! taxonomy_exists( $taxonomy ) ) {
+			return;
+		}
+
+		// Get all WordPress roles
+		$roles = wp_roles()->roles;
+
+		// Add the virtual "guest" role at the top
+		$roles = array_merge(
+			array( 'guest' => array( 'name' => __( 'Guest', 'riaco-hide-products' ) ) ),
+			$roles
+		);
+
+		foreach ( $roles as $role_key => $role_data ) {
+			$term_slug = 'hide-for-' . sanitize_title( $role_key );
+			$term_name = $role_data['name'];
+
+			if ( ! term_exists( $term_slug, $taxonomy ) ) {
+				wp_insert_term(
+					$term_name,
+					$taxonomy,
+					array(
+						'slug' => $term_slug,
+					)
+				);
+			}
+		}
 	}
 }

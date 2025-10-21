@@ -12,6 +12,9 @@ class ProductVisibility implements ServiceInterface {
 	public function register(): void {
 		add_action( 'pre_get_posts', array( $this, 'filter_product_query' ) );
 
+			// WooCommerce product query (works for FiboSearch if it uses WooCommerce hooks)
+			add_action( 'woocommerce_product_query', array( $this, 'filter_wc_product_query' ) );
+
 		// Replace product content using render_block (block theme compatible)
 		// add_filter( 'render_block', array( $this, 'filter_single_product_content_block' ), 10, 2 );
 
@@ -22,6 +25,10 @@ class ProductVisibility implements ServiceInterface {
 		add_action( 'template_redirect', array( $this, 'maybe_hide_single_product_page' ) );
 
 		add_filter( 'rest_product_query', array( $this, 'maybe_hide_product_in_rest_api' ), 10, 2 );
+
+		add_filter( 'woocommerce_available_variation', array( $this, 'maybe_hide_variation' ), 10, 3 );
+
+		add_filter( 'dgwt/wcas/search_query/args', array( $this, 'fibosearch_compatibility' ), 10, 1 ); // FiboSearch
 	}
 
 
@@ -34,54 +41,15 @@ class ProductVisibility implements ServiceInterface {
 			return;
 		}
 
-		if ( ! is_shop() && ! is_product_taxonomy() && ! is_product_category() && ! is_product_tag() ) {
+		// Only modify WooCommerce product queries
+		$is_shop_or_archive = is_shop() || is_product_taxonomy() || is_product_category() || is_product_tag();
+		$is_product_search  = $query->is_search(); // && 'product' === $query->get( 'post_type' );
+
+		if ( ! $is_shop_or_archive && ! $is_product_search ) {
 			return;
 		}
 
-		// Meta query to hide products for users not in allowed roles
-		$user       = wp_get_current_user();
-		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
-
-		// Step 1: check global hide settings for each role
-		$global_hidden_roles = $this->get_global_hidden_roles_by_user_roles( $user_roles );
-
-		// Step 2: if user has a globally hidden role, show no products
-
-		if ( ! empty( $global_hidden_roles ) ) {
-
-			$query->set( 'post_parent', -1 );  // A non-existent parent ID
-
-			// Filter WooCommerce "No products found" block output (block theme)
-			add_filter( 'render_block', array( $this, 'filter_no_products_block' ), 10, 2 );
-
-			return;
-		}
-
-		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
-
-		$taxonomy = 'riaco_hpburfw_visibility_role';
-
-		$tax_query = array(
-
-			// Products that do NOT have a hidden role for the current user
-			array(
-				'taxonomy' => $taxonomy,
-				'field'    => 'slug',
-				'terms'    => $hidden_terms,
-				'operator' => 'NOT IN',
-			),
-		);
-
-		/*
-		$existing_tax_query = $query->get( 'tax_query' );
-		if ( ! empty( $existing_tax_query ) ) {
-			$tax_query = array_merge( $existing_tax_query, $tax_query );
-		} */
-
-		// Only apply tax_query if there are roles that could hide products
-		if ( ! empty( $hidden_terms ) ) {
-			$query->set( 'tax_query', $tax_query );
-		}
+		$this->apply_visibility_tax_query( $query );
 	}
 
 	private function get_global_hidden_roles_by_user_roles( $user_roles ) {
@@ -271,8 +239,118 @@ class ProductVisibility implements ServiceInterface {
 
 		if ( ! empty( $global_hidden_roles ) ) {
 			$args['post__in'] = array( 0 );
+		} else {
+			$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
+
+			$taxonomy = 'riaco_hpburfw_visibility_role';
+
+			$args['tax_query'][] = array(
+				'taxonomy' => $taxonomy,
+				'field'    => 'slug',
+				'terms'    => $hidden_terms,
+				'operator' => 'NOT IN',
+			);
+		}
+		return $args;
+	}
+
+	public function filter_wc_product_query( $query ): void {
+		$this->apply_visibility_tax_query( $query );
+	}
+
+	private function apply_visibility_tax_query( $query ): void {
+
+		/*
+		if ( is_admin() || ! $query->is_main_query() ) {
+			return;
+		} */
+
+		// Meta query to hide products for users not in allowed roles
+		$user       = wp_get_current_user();
+		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
+
+		// Step 1: check global hide settings for each role
+		$global_hidden_roles = $this->get_global_hidden_roles_by_user_roles( $user_roles );
+
+		// Step 2: if user has a globally hidden role, show no products
+
+		if ( ! empty( $global_hidden_roles ) ) {
+
+			$query->set( 'post_parent', -1 );  // A non-existent parent ID
+
+			// Filter WooCommerce "No products found" block output (block theme)
+			add_filter( 'render_block', array( $this, 'filter_no_products_block' ), 10, 2 );
+
+			return;
 		}
 
-		return $args;
+		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
+
+		$taxonomy = 'riaco_hpburfw_visibility_role';
+
+		$tax_query = array(
+
+			// Products that do NOT have a hidden role for the current user
+			array(
+				'taxonomy' => $taxonomy,
+				'field'    => 'slug',
+				'terms'    => $hidden_terms,
+				'operator' => 'NOT IN',
+			),
+		);
+
+		// Merge with existing tax_query if any
+		$existing = $query->get( 'tax_query' );
+		if ( is_array( $existing ) ) {
+			$tax_query = array_merge( $existing, $tax_query );
+		}
+
+		// Only apply tax_query if there are roles that could hide products
+		$query->set( 'tax_query', $tax_query );
+	}
+
+	public function fibosearch_compatibility( $args ) {
+
+		$user       = wp_get_current_user();
+		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
+
+		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
+
+		$taxonomy = 'riaco_hpburfw_visibility_role';
+
+			$args['tax_query'][] = array(
+				'taxonomy' => $taxonomy,
+				'field'    => 'slug',
+				'terms'    => $hidden_terms,
+				'operator' => 'NOT IN',
+			);
+
+			return $args;
+	}
+
+	public function maybe_hide_variation( $variation_data, $product, $variation ) {
+		if ( ! $variation_data ) {
+			return $variation_data;
+		}
+
+		$user       = wp_get_current_user();
+		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
+
+		// Build the slugs for terms we should hide
+		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . sanitize_title( $r ), $user_roles );
+
+		// Get variation terms
+		$variation_terms = wp_get_object_terms( $variation->get_id(), 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
+
+		// error_log( 'Variation ID ' . $variation->get_id() . ' terms: ' . print_r( $variation_terms, true ) );
+
+		// If the variation has any term that matches one of the hidden terms — hide it
+		foreach ( $variation_terms as $term ) {
+			if ( in_array( $term, $hidden_terms, true ) ) {
+				return false; // This removes the variation entirely from the list
+			}
+		}
+
+		return $variation_data;
 	}
 }

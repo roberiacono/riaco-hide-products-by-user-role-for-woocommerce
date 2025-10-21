@@ -41,6 +41,8 @@ class Plugin {
 	 */
 	private array $services = array();
 
+	public $taxonomy = 'riaco_hpburfw_visibility_role';
+
 	/**
 	 * Constructor.
 	 *
@@ -50,7 +52,7 @@ class Plugin {
 		$this->file   = $file;
 		$this->loaded = false;
 
-		$this->services[] = new CustomTaxonomy();
+		$this->services[] = new CustomTaxonomy( $this );
 
 		if ( is_admin() ) {
 			$this->services[] = new ProductVisibilityTab();
