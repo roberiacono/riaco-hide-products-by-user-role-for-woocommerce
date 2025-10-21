@@ -80,7 +80,7 @@ class Plugin {
 
 		$this->register();
 
-		do_action( 'riaco_hpfw_loaded', $this );
+		do_action( 'riaco_hpburfw__loaded', $this );
 	}
 
 	private function register(): void {

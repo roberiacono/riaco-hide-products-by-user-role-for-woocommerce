@@ -62,7 +62,7 @@ class ProductVisibilityTab implements ServiceInterface {
 			$roles
 		);
 
-		$saved_roles = (array) get_post_meta( $post->ID, '_riaco_hpfw_roles', true );
+		$saved_roles = (array) get_post_meta( $post->ID, '_riaco_hpburfw_roles', true );
 
 		// Output checkboxes using WooCommerce helper function
 		foreach ( $roles as $role_key => $role_data ) {
@@ -94,13 +94,13 @@ class ProductVisibilityTab implements ServiceInterface {
 		);
 
 		// Delete old role restrictions to prevent duplicates
-		delete_post_meta( $post_id, '_riaco_hpfw_role' );
+		delete_post_meta( $post_id, '_riaco_hpburfw_role' );
 
 		foreach ( $roles_data as $role_key => $role_data ) {
 			$field_id = 'riaco_role_' . $role_key;
 
 			if ( ! empty( $_POST[ $field_id ] ) && $_POST[ $field_id ] === 'yes' ) {
-				add_post_meta( $post_id, '_riaco_hpfw_role', sanitize_key( $role_key ) );
+				add_post_meta( $post_id, '_riaco_hpburfw_role', sanitize_key( $role_key ) );
 			}
 		}
 	}

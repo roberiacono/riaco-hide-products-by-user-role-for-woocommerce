@@ -9,21 +9,54 @@ use Riaco\HideProducts\Interfaces\ServiceInterface;
 
 class SettingsPage implements ServiceInterface {
 	public function register(): void {
-		add_action( 'admin_menu', array( $this, 'menu' ) );
+		add_filter( 'woocommerce_get_sections_products', array( $this, 'add_settings_section' ) );
+		add_filter( 'woocommerce_get_settings_products', array( $this, 'add_settings_fields' ), 10, 2 );
 	}
 
-	public function menu(): void {
-		add_submenu_page(
-			'woocommerce',
-			__( 'Product Visibility', 'riaco-hide-products' ),
-			__( 'Product Visibility', 'riaco-hide-products' ),
-			'manage_woocommerce',
-			'riaco-visibility',
-			array( $this, 'render' )
+	/**
+	 * Add a new section under WooCommerce > Settings > Products
+	 */
+	public function add_settings_section( $sections ): array {
+		$sections['riaco_visibility'] = __( 'Hide by User Role', 'riaco-hide-products' );
+		return $sections;
+	}
+
+	/**
+	 * Add settings to our section
+	 */
+	public function add_settings_fields( $settings, $current_section ): array {
+		if ( 'riaco_visibility' !== $current_section ) {
+			return $settings;
+		}
+
+		$roles = array_merge(
+			array( 'guest' => array( 'name' => __( 'Guest', 'riaco-hide-products' ) ) ),
+			wp_roles()->roles
 		);
-	}
 
-	public function render(): void {
-		echo '<div class=\"wrap\"><h1>RIACO Visibility</h1></div>';
+		$new_settings = array(
+			array(
+				'title' => __( 'Hide Products by User Role', 'riaco-hide-products' ),
+				'type'  => 'title',
+				'desc'  => __( 'Set default global visibility rules for products.', 'riaco-hide-products' ),
+				'id'    => 'riaco_hpburfw_settings_title',
+			),
+		);
+
+		foreach ( $roles as $role_key => $role_data ) {
+			$new_settings[] = array(
+				'title'   => sprintf( __( 'Hide for %s', 'riaco-hide-products' ), esc_html( $role_data['name'] ) ),
+				'id'      => "riaco_hpburfw_hide_{$role_key}",
+				'type'    => 'checkbox',
+				'default' => 'no',
+			);
+		}
+
+		$new_settings[] = array(
+			'type' => 'sectionend',
+			'id'   => 'riaco_hpburfw_settings_end',
+		);
+
+		return $new_settings;
 	}
 }
