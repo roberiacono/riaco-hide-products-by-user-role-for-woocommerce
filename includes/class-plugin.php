@@ -53,7 +53,9 @@ class Plugin {
 	public function __construct( string $file ) {
 		$this->file   = $file;
 		$this->loaded = false;
+	}
 
+	private function load_services(): void {
 		$this->services[] = new CustomTaxonomy( $this );
 
 		if ( is_admin() ) {
@@ -62,7 +64,7 @@ class Plugin {
 		}
 
 		if ( ! is_admin() ) {
-			$this->services[] = new ProductVisibility();
+			$this->services[] = new ProductVisibility( $this );
 		}
 	}
 
@@ -85,10 +87,16 @@ class Plugin {
 			return;
 		}
 
+		add_action( 'plugins_loaded', array( $this, 'init' ) );
+	}
+
+	public function init() {
+		$this->load_services();
 		$this->register();
 
 		do_action( 'riaco_hpburfw_loaded', $this );
 	}
+
 
 	private function register(): void {
 		foreach ( $this->services as $service ) {

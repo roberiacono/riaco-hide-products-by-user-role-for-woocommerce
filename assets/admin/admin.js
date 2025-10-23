@@ -39,8 +39,8 @@ jQuery(document).ready(function ($) {
             </td>
             <td>
                 <select class="target-select" name="riaco_hpburfw_rules[${index}][target]">
-                    <option value="all" ${
-                      rule.target === "all" ? "selected" : ""
+                    <option value="all_products" ${
+                      rule.target === "all_products" ? "selected" : ""
                     }>All Products</option>
                     <option value="category" ${
                       rule.target === "category" ? "selected" : ""
@@ -67,7 +67,11 @@ jQuery(document).ready(function ($) {
   }
 
   function addRow() {
-    riaco_hpburfw_data.rules.push({ role: "", target: "all", category: "" });
+    riaco_hpburfw_data.rules.push({
+      role: "",
+      target: "all_products",
+      category: "",
+    });
     refreshTable();
   }
 
