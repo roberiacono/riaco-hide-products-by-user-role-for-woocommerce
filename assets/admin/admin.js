@@ -1,7 +1,9 @@
 jQuery(document).ready(function ($) {
+  console.log("riaco_hpburfw_data:", riaco_hpburfw_data);
+
   function renderRow(index, rule) {
-    const roles = riacoData.roles;
-    const categories = riacoData.categories;
+    const roles = riaco_hpburfw_data.roles;
+    const categories = riaco_hpburfw_data.categories;
 
     let roleOptions = "";
     for (const key in roles) {
@@ -10,7 +12,7 @@ jQuery(document).ready(function ($) {
     }
 
     let categoryOptions = '<option value="">Select category</option>';
-    categories.forEach((cat) => {
+    categories?.forEach((cat) => {
       const selected = rule.category == cat.term_id ? "selected" : "";
       categoryOptions += `<option value="${cat.term_id}" ${selected}>${cat.name}</option>`;
     });
@@ -20,23 +22,23 @@ jQuery(document).ready(function ($) {
 
     const moveDisabledUp = index === 0 ? "wc-move-disabled" : "";
     const moveDisabledDown =
-      index === riacoData.rules.length - 1 ? "wc-move-disabled" : "";
+      index === riaco_hpburfw_data.rules.length - 1 ? "wc-move-disabled" : "";
 
     return `<tr>
             <td class="priority">
             <div class="riaco-hpburfw-item-reorder-nav">
                     <button type="button" class="move-up ${moveDisabledUp}" aria-label="Move up"><span class="dashicons dashicons-arrow-up-alt2"></span></button>
                     <button type="button" class="move-down ${moveDisabledDown}" aria-label="Move down"><span class="dashicons dashicons-arrow-down-alt2"></span></button>
-                    <input type="hidden" name="riaco_visibility_rules[${index}][order]" value="${index}">
+                    <input type="hidden" name="riaco_hpburfw_rules[${index}][order]" value="${index}">
                 </div>
             </td>
             <td>
-                <select name="riaco_visibility_rules[${index}][role]">
+                <select name="riaco_hpburfw_rules[${index}][role]">
                     ${roleOptions}
                 </select>
             </td>
             <td>
-                <select class="target-select" name="riaco_visibility_rules[${index}][target]">
+                <select class="target-select" name="riaco_hpburfw_rules[${index}][target]">
                     <option value="all" ${
                       rule.target === "all" ? "selected" : ""
                     }>All Products</option>
@@ -46,7 +48,7 @@ jQuery(document).ready(function ($) {
                 </select>
             </td>
             <td>
-                <select class="category-select" name="riaco_visibility_rules[${index}][category]" ${showCategory}>
+                <select class="category-select" name="riaco_hpburfw_rules[${index}][category]" ${showCategory}>
                     ${categoryOptions}
                 </select>
             </td>
@@ -59,32 +61,32 @@ jQuery(document).ready(function ($) {
   function refreshTable() {
     const tbody = $("#riaco-hpburfw-rules tbody");
     tbody.empty();
-    riacoData.rules.forEach((rule, index) => {
+    riaco_hpburfw_data.rules.forEach((rule, index) => {
       tbody.append(renderRow(index, rule));
     });
   }
 
   function addRow() {
-    riacoData.rules.push({ role: "", target: "all", category: "" });
+    riaco_hpburfw_data.rules.push({ role: "", target: "all", category: "" });
     refreshTable();
   }
 
   function moveUp(index) {
     if (index === 0) return;
-    const rules = riacoData.rules;
+    const rules = riaco_hpburfw_data.rules;
     [rules[index - 1], rules[index]] = [rules[index], rules[index - 1]];
     refreshTable();
   }
 
   function moveDown(index) {
-    const rules = riacoData.rules;
+    const rules = riaco_hpburfw_data.rules;
     if (index === rules.length - 1) return;
     [rules[index], rules[index + 1]] = [rules[index + 1], rules[index]];
     refreshTable();
   }
 
   function removeRow(index) {
-    riacoData.rules.splice(index, 1);
+    riaco_hpburfw_data.rules.splice(index, 1);
     refreshTable();
   }
 
@@ -92,7 +94,7 @@ jQuery(document).ready(function ($) {
   refreshTable();
 
   // Add new row
-  $("#add-rule").click(addRow);
+  $("#add-rule").on("click", addRow);
 
   // Delegate actions
   $("#riaco-hpburfw-rules tbody").on("click", ".move-up", function () {
@@ -113,7 +115,7 @@ jQuery(document).ready(function ($) {
   $("#riaco-hpburfw-rules tbody").on("change", ".target-select", function () {
     const row = $(this).closest("tr");
     const index = row.index();
-    riacoData.rules[index].target = $(this).val();
+    riaco_hpburfw_data.rules[index].target = $(this).val();
     refreshTable();
   });
 
@@ -123,7 +125,7 @@ jQuery(document).ready(function ($) {
     function () {
       const row = $(this).closest("tr");
       const index = row.index();
-      riacoData.rules[index].role = $(this).val();
+      riaco_hpburfw_data.rules[index].role = $(this).val();
     }
   );
 
@@ -133,7 +135,7 @@ jQuery(document).ready(function ($) {
     function () {
       const row = $(this).closest("tr");
       const index = row.index();
-      riacoData.rules[index].category = $(this).val();
+      riaco_hpburfw_data.rules[index].category = $(this).val();
     }
   );
 });

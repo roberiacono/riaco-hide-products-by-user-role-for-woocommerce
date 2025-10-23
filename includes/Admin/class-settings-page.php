@@ -30,9 +30,7 @@ class SettingsPage implements ServiceInterface {
 			return;
 		}
 
-		global $wp_roles;
-
-		$roles      = $wp_roles->roles;
+		$roles      = $this->plugin->get_roles();
 		$categories = get_terms(
 			array(
 				'taxonomy'   => 'product_cat',
@@ -52,11 +50,11 @@ class SettingsPage implements ServiceInterface {
 
 		wp_localize_script(
 			'riaco-hpburfw-admin-js',
-			'riacoData',
+			'riaco_hpburfw_data',
 			array(
 				'roles'      => $roles,
 				'categories' => $categories,
-				'rules'      => $rules,
+				'rules'      => ! empty( $rules ) ? $rules : array(),
 			)
 		);
 
@@ -119,44 +117,5 @@ class SettingsPage implements ServiceInterface {
 </div>
 
 		<?php
-	}
-
-	/**
-	 * Add settings to our section
-	 */
-	public function add_settings_fields( $settings, $current_section ): array {
-		if ( 'riaco_visibility' !== $current_section ) {
-			return $settings;
-		}
-
-		$roles = array_merge(
-			array( 'guest' => array( 'name' => __( 'Guest', 'riaco-hide-products' ) ) ),
-			wp_roles()->roles
-		);
-
-		$new_settings = array(
-			array(
-				'title' => __( 'Hide Products by User Role', 'riaco-hide-products' ),
-				'type'  => 'title',
-				'desc'  => __( 'Set default global visibility rules for products.', 'riaco-hide-products' ),
-				'id'    => 'riaco_hpburfw_settings_title',
-			),
-		);
-
-		foreach ( $roles as $role_key => $role_data ) {
-			$new_settings[] = array(
-				'title'   => sprintf( __( 'Hide for %s', 'riaco-hide-products' ), esc_html( $role_data['name'] ) ),
-				'id'      => "riaco_hpburfw_hide_{$role_key}",
-				'type'    => 'checkbox',
-				'default' => 'no',
-			);
-		}
-
-		$new_settings[] = array(
-			'type' => 'sectionend',
-			'id'   => 'riaco_hpburfw_settings_end',
-		);
-
-		return $new_settings;
 	}
 }

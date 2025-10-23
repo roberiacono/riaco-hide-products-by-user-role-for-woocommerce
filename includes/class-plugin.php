@@ -97,4 +97,12 @@ class Plugin {
 			}
 		}
 	}
+
+	public function get_roles() {
+		$roles = array_merge(
+			array( 'guest' => array( 'name' => __( 'Guest', 'riaco-hide-products' ) ) ),
+			wp_roles()->roles
+		);
+		return $roles;
+	}
 }
