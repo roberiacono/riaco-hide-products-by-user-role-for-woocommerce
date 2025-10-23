@@ -19,12 +19,14 @@ use Riaco\HideProducts\Frontend\ProductVisibility;
  * Main plugin class.
  */
 class Plugin {
+
+	public string $version = '1.0.0';
 	/**
 	 * The main plugin file.
 	 *
 	 * @var string
 	 */
-	private string $file;
+	public string $file;
 
 	/**
 	 * Flag to track if the plugin is loaded.
@@ -56,7 +58,7 @@ class Plugin {
 
 		if ( is_admin() ) {
 			$this->services[] = new ProductVisibilityTab();
-			$this->services[] = new SettingsPage();
+			$this->services[] = new SettingsPage( $this );
 		}
 
 		if ( ! is_admin() ) {

@@ -1,0 +1,31 @@
+/* Table first column for move up/down */
+#riaco-hpburfw-rules .riaco-hpburfw-item-reorder-nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+    gap: 4px;
+}
+
+#riaco-hpburfw-rules .riaco-hpburfw-item-reorder-nav button {
+    font-family: dashicons;
+    font-size: 20px;
+    line-height: 23px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+
+#riaco-hpburfw-rules .riaco-hpburfw-item-reorder-nav button.wc-move-disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+#riaco-hpburfw-rules .priority {
+    
+}
+
+#riaco-hpburfw-rules select {
+    width: 100%;
+}
