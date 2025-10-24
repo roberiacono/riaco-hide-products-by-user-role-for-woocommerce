@@ -3,59 +3,110 @@ jQuery(document).ready(function ($) {
 
   function renderRow(index, rule) {
     const roles = riaco_hpburfw_data.roles;
-    const categories = riaco_hpburfw_data.categories;
+    const targets = riaco_hpburfw_data.targets;
 
+    // Ensure rule.terms always exists (avoid undefined errors)
+    rule.terms = rule.terms || [];
+
+    // Build role <select>
     let roleOptions = "";
     for (const key in roles) {
       const selected = rule.role === key ? "selected" : "";
       roleOptions += `<option value="${key}" ${selected}>${roles[key].name}</option>`;
     }
 
-    let categoryOptions = '<option value="">Select category</option>';
-    categories?.forEach((cat) => {
-      const selected = rule.category == cat.term_id ? "selected" : "";
-      categoryOptions += `<option value="${cat.term_id}" ${selected}>${cat.name}</option>`;
+    // Build target <select>
+    let targetOptions = "";
+    targets.forEach((target) => {
+      const selected = rule.target === target.id ? "selected" : "";
+      targetOptions += `<option value="${target.id}" ${selected}>${target.label}</option>`;
     });
 
-    const showCategory =
-      rule.target === "category" ? "" : 'style="display:none;"';
+    const selectedTarget = targets.find((t) => t.id === rule.target);
+    const hasTerms = selectedTarget?.terms?.length > 0;
 
-    const moveDisabledUp = index === 0 ? "wc-move-disabled" : "";
-    const moveDisabledDown =
-      index === riaco_hpburfw_data.rules.length - 1 ? "wc-move-disabled" : "";
+    // Recursive renderer for nested checkboxes (like WooCommerce product categories)
+    function renderTerms(terms, level = 0) {
+      return terms
+        .map((term) => {
+          const checked = rule.terms.includes(term.term_id.toString())
+            ? "checked"
+            : "";
+          const hasChildren =
+            Array.isArray(term.children) && term.children.length > 0;
+          const margin = level * 20;
 
-    return `<tr>
-            <td class="priority">
-            <div class="riaco-hpburfw-item-reorder-nav">
-                    <button type="button" class="move-up ${moveDisabledUp}" aria-label="Move up"><span class="dashicons dashicons-arrow-up-alt2"></span></button>
-                    <button type="button" class="move-down ${moveDisabledDown}" aria-label="Move down"><span class="dashicons dashicons-arrow-down-alt2"></span></button>
-                    <input type="hidden" name="riaco_hpburfw_rules[${index}][order]" value="${index}">
-                </div>
-            </td>
-            <td>
-                <select name="riaco_hpburfw_rules[${index}][role]">
-                    ${roleOptions}
-                </select>
-            </td>
-            <td>
-                <select class="target-select" name="riaco_hpburfw_rules[${index}][target]">
-                    <option value="all_products" ${
-                      rule.target === "all_products" ? "selected" : ""
-                    }>All Products</option>
-                    <option value="category" ${
-                      rule.target === "category" ? "selected" : ""
-                    }>Category</option>
-                </select>
-            </td>
-            <td>
-                <select class="category-select" name="riaco_hpburfw_rules[${index}][category]" ${showCategory}>
-                    ${categoryOptions}
-                </select>
-            </td>
-            <td>
-                <button type="button" class="button button-link remove-row">Remove</button>
-            </td>
-        </tr>`;
+          return `
+            <li class="term-item" style="margin-left:${margin}px;">
+              <label>
+                <input type="checkbox" 
+                       name="riaco_hpburfw_rules[${index}][terms][]" 
+                       value="${term.term_id}" 
+                       ${checked}>
+                ${term.name}
+              </label>
+              ${
+                hasChildren
+                  ? `<ul class="children">${renderTerms(
+                      term.children,
+                      level + 1
+                    )}</ul>`
+                  : ""
+              }
+            </li>
+          `;
+        })
+        .join("");
+    }
+
+    // Render list of terms (if available)
+    const termsList = hasTerms
+      ? `<ul class="term-checklist">${renderTerms(selectedTarget.terms)}</ul>`
+      : ``;
+
+    return `
+      <tr>
+        <td class="priority">
+          <div class="riaco-hpburfw-item-reorder-nav">
+            <button type="button" class="move-up ${
+              index === 0 ? "wc-move-disabled" : ""
+            }" aria-label="Move up">
+              <span class="dashicons dashicons-arrow-up-alt2"></span>
+            </button>
+            <button type="button" class="move-down ${
+              index === riaco_hpburfw_data.rules.length - 1
+                ? "wc-move-disabled"
+                : ""
+            }" aria-label="Move down">
+              <span class="dashicons dashicons-arrow-down-alt2"></span>
+            </button>
+            <input type="hidden" name="riaco_hpburfw_rules[${index}][order]" value="${index}">
+          </div>
+        </td>
+  
+        <td>
+          <select name="riaco_hpburfw_rules[${index}][role]">
+            ${roleOptions}
+          </select>
+        </td>
+  
+        <td>
+          <select class="target-select" name="riaco_hpburfw_rules[${index}][target]">
+            ${targetOptions}
+          </select>
+        </td>
+  
+        <td class="terms-column">
+          <div class="${
+            termsList ? "term-checkbox-tree" : ""
+          }">${termsList}</div>
+        </td>
+  
+        <td>
+          <button type="button" class="button button-link remove-row">Remove</button>
+        </td>
+      </tr>
+    `;
   }
 
   function refreshTable() {

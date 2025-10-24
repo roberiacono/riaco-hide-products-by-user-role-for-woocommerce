@@ -30,14 +30,7 @@ class SettingsPage implements ServiceInterface {
 			return;
 		}
 
-		$roles      = $this->plugin->get_roles();
-		$categories = get_terms(
-			array(
-				'taxonomy'   => 'product_cat',
-				'hide_empty' => false,
-			)
-		);
-
+		$roles = $this->plugin->get_roles();
 		$rules = get_option( 'riaco_hpburfw_rules', array() );
 
 		wp_enqueue_script(
@@ -48,13 +41,30 @@ class SettingsPage implements ServiceInterface {
 			true
 		);
 
+		$targets = array(
+			array(
+				'id'       => 'all_products',
+				'label'    => __( 'All Products', 'riaco' ),
+				'taxonomy' => null,
+			),
+			array(
+				'id'       => 'product_cat',
+				'label'    => __( 'Product Category', 'riaco' ),
+				'taxonomy' => 'product_cat',
+				'terms'    => $this->get_taxonomy_tree( 'product_cat' ),
+			),
+
+			// You can extend via filter
+		);
+		$targets = apply_filters( 'riaco_hpburfw_targets', $targets );
+
 		wp_localize_script(
 			'riaco-hpburfw-admin-js',
 			'riaco_hpburfw_data',
 			array(
-				'roles'      => $roles,
-				'categories' => $categories,
-				'rules'      => ! empty( $rules ) ? $rules : array(),
+				'roles'   => $roles,
+				'targets' => $targets,
+				'rules'   => ! empty( $rules ) ? $rules : array(),
 			)
 		);
 
@@ -69,6 +79,41 @@ class SettingsPage implements ServiceInterface {
 			$this->plugin->version
 		);
 	}
+
+	/**
+	 * Build a hierarchical (nested) array of taxonomy terms.
+	 *
+	 * @param string $taxonomy  Taxonomy name (e.g. 'product_cat').
+	 * @param int    $parent_id Parent term ID (default 0).
+	 * @return array
+	 */
+	private function get_taxonomy_tree( string $taxonomy, int $parent_id = 0 ): array {
+		$terms = get_terms(
+			array(
+				'taxonomy'   => $taxonomy,
+				'hide_empty' => false,
+				'parent'     => $parent_id,
+			)
+		);
+
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			return array();
+		}
+
+		$tree = array();
+
+		foreach ( $terms as $term ) {
+			$tree[] = array(
+				'term_id'  => $term->term_id,
+				'name'     => $term->name,
+				'slug'     => $term->slug,
+				'children' => $this->get_taxonomy_tree( $taxonomy, $term->term_id ), // recursive
+			);
+		}
+
+		return $tree;
+	}
+
 
 	public function add_admin_menu() {
 		add_submenu_page(
@@ -98,7 +143,7 @@ class SettingsPage implements ServiceInterface {
 		<table class="wp-list-table widefat fixed striped" id="riaco-hpburfw-rules">
 			<thead>
 				<tr>
-					<th>Priority</th>
+					<th></th>
 					<th>User Role</th>
 					<th>Target</th>
 					<th>Terms</th>

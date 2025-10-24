@@ -79,18 +79,17 @@ class ProductVisibility implements ServiceInterface {
 		}
 
 		// 2️. Category-specific hide
-		$category_terms = $this->get_hidden_category_terms();
+		$target_terms = $this->get_hidden_target_terms();
 
-		if ( ! empty( $category_terms ) ) {
-			error_log( 'Hiding products in categories: ' . print_r( $category_terms, true ) );
-			$this->exclude_category_terms( $query, $category_terms );
+		if ( ! empty( $target_terms ) ) {
+			// error_log( 'Hiding products in categories: ' . print_r( $target_terms, true ) );
+			$this->exclude_target_terms( $query, $target_terms );
 		}
 
 		// 3️. Product-specific visibility via taxonomy
 		$this->exclude_by_custom_taxonomy( $query );
-		// error_log( 'Hiding products by single product custom taxonomy' );
 
-		error_log( 'Final query args: ' . print_r( $query->query_vars, true ) );
+		// error_log( 'Final query args: ' . print_r( $query->query_vars, true ) );
 	}
 
 	private function has_global_hide_rule(): bool {
@@ -109,38 +108,75 @@ class ProductVisibility implements ServiceInterface {
 		add_filter( 'render_block', array( $this, 'filter_no_products_block' ), 10, 2 );
 	}
 
-	private function get_hidden_category_terms(): array {
+	private function get_hidden_target_terms(): array {
 		$terms = array();
+
 		foreach ( $this->rules as $rule ) {
+			// Skip incomplete rules
 			if (
-				in_array( $rule['role'], $this->user_roles, true )
-				&& 'category' === $rule['target']
-				&& ! empty( $rule['category'] )
+				empty( $rule['role'] ) ||
+				empty( $rule['target'] ) ||
+				empty( $rule['terms'] )
 			) {
-				$terms[] = $rule['category'];
+				continue;
 			}
+
+			// Only include rules that match current user roles
+			if ( ! in_array( $rule['role'], $this->user_roles, true ) ) {
+				continue;
+			}
+
+			// Initialize target key if missing
+			if ( ! isset( $terms[ $rule['target'] ] ) ) {
+				$terms[ $rule['target'] ] = array();
+			}
+
+			// Merge term IDs (flatten)
+			$terms[ $rule['target'] ] = array_merge(
+				$terms[ $rule['target'] ],
+				array_map( 'intval', (array) $rule['terms'] )
+			);
 		}
-		return array_unique( $terms );
+
+		// Make term IDs unique for each target
+		foreach ( $terms as $target => $term_ids ) {
+			$terms[ $target ] = array_values( array_unique( $term_ids ) );
+		}
+
+		return $terms;
 	}
 
-	private function exclude_category_terms( \WP_Query $query, array $terms ): void {
-		$tax_query   = (array) $query->get( 'tax_query' );
-		$tax_query[] = array(
-			'taxonomy' => 'product_cat',
-			'field'    => 'term_id',
-			'terms'    => $terms,
-			'operator' => 'NOT IN',
-		);
+
+	private function exclude_target_terms( \WP_Query $query, array $target_terms ): void {
+
+		$tax_query = (array) $query->get( 'tax_query' );
+
+		// Make term IDs unique for each target
+		foreach ( $target_terms as $target => $term_ids ) {
+
+			$tax_query[] = array(
+				'taxonomy'         => $target,
+				'field'            => 'term_id',
+				'terms'            => array_values( array_unique( $term_ids ) ),
+				'operator'         => 'NOT IN',
+				'include_children' => false, // prevent hiding products in child categories
+			);
+		}
 		$query->set( 'tax_query', $tax_query );
 	}
 
-	private function exclude_by_custom_taxonomy( \WP_Query $query ): void {
+	private function get_hidden_terms_of_custom_taxonomy() {
 		$hidden_terms = array_map(
 			function ( $role ) {
 				return 'hide-for-' . $role;
 			},
 			$this->user_roles
 		);
+		return $hidden_terms;
+	}
+
+	private function exclude_by_custom_taxonomy( \WP_Query $query ): void {
+		$hidden_terms = $this->get_hidden_terms_of_custom_taxonomy();
 
 		$tax_query   = (array) $query->get( 'tax_query' );
 		$tax_query[] = array(
@@ -170,7 +206,7 @@ class ProductVisibility implements ServiceInterface {
 		if ( /*! $is_shop_or_archive && */ ! $is_product_search ) {
 			return;
 		}
-		error_log( 'Filtering product query filter_product_query' );
+		// error_log( 'Filtering product query filter_product_query' );
 		$this->apply_visibility_query( $query );
 	}
 
@@ -179,18 +215,232 @@ class ProductVisibility implements ServiceInterface {
 	 * Replace "No products found" block content (for block themes)
 	 */
 	public function filter_no_products_block( string $block_content, array $block ): string {
-		// error_log( 'Filtering block: ' . $block['blockName'] );
 		if ( $block['blockName'] === 'woocommerce/product-collection-no-results' ) {
-			// Custom message for guest users (example)
 			$user = wp_get_current_user();
+
 			if ( ! $user->exists() ) {
-				return '<p class="woocommerce-info">' . esc_html__( 'You must be logged in to view products.', 'riaco-hide-products' ) . '</p>';
+				return $this->get_login_message();
 			}
 
-			return '<p class="woocommerce-info">' . esc_html__( 'Products are hidden for your role.', 'riaco-hide-products' ) . '</p>';
+			return $this->get_hidden_for_role_message();
 		}
 
 		return $block_content;
+	}
+
+
+
+
+
+	public function maybe_hide_single_product_page(): void {
+		if ( ! is_singular( 'product' ) ) {
+			return;
+		}
+
+		global $post;
+		if ( ! $post ) {
+			return;
+		}
+
+		if ( empty( $this->rules ) ) {
+			return;
+		}
+
+		$user       = wp_get_current_user();
+		$user_roles = $this->user_roles;
+
+		$product_id = $post->ID;
+
+		// 1️. Global rule for all products
+		if ( $this->has_global_hide_rule() ) {
+			// error_log( 'Hiding all products for user roles: ' . print_r( $this->user_roles, true ) );
+			$this->redirect_blocked_user( $user, $product_id );
+		}
+
+		// 2. hide based on target terms (e.g., categories)
+		if ( $this->has_global_target_terms_hide_rule( $product_id ) ) {
+			$this->redirect_blocked_user( $user, $product_id );
+		}
+
+		// 3. Product-specific visibility (taxonomy: riaco_hpburfw_visibility_role)
+		if ( $this->has_product_specific_hide_rule( $product_id ) ) {
+			$this->redirect_blocked_user( $user, $product_id );
+		}
+	}
+
+	private function redirect_blocked_user( \WP_User $user, int $product_id ): void {
+		if ( ! $user->exists() ) {
+			wp_safe_redirect( wp_login_url( get_permalink( $product_id ) ) );
+			exit;
+		}
+
+		wp_safe_redirect( wc_get_page_permalink( 'shop' ) );
+		exit;
+	}
+
+	private function has_product_specific_hide_rule( $product_id ) {
+		$hidden_terms = $this->get_hidden_terms_of_custom_taxonomy();
+
+		$assigned_terms = wp_get_object_terms(
+			$product_id,
+			$this->plugin->taxonomy,
+			array( 'fields' => 'slugs' )
+		);
+
+		if ( is_wp_error( $assigned_terms ) ) {
+			$assigned_terms = array();
+		}
+
+		if ( array_intersect( $hidden_terms, $assigned_terms ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	private function has_global_target_terms_hide_rule( $product_id ) {
+		$hidden_target_terms = $this->get_hidden_target_terms();
+
+		// error_log( 'Hidden target terms: ' . print_r( $hidden_target_terms, true ) );
+
+		if ( ! empty( $hidden_target_terms ) ) {
+			// error_log( 'Hiding products in categories: ' . print_r( $category_terms, true ) );
+			// If product has any of these terms, hide it
+			foreach ( $hidden_target_terms as $key => $terms ) {
+				// error_log( 'Checking terms for taxonomy ' . $key . ': ' . print_r( $terms, true ) );
+				if ( has_term( $terms, $key, $product_id ) ) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+
+
+	public function filter_wc_product_query( $query ): void {
+		// error_log( 'Filtering product query filter_wc_product_query' );
+		$this->apply_visibility_query( $query );
+	}
+
+
+	public function maybe_hide_variation( $variation_data, $product, $variation ) {
+		if ( ! $variation_data ) {
+			return $variation_data;
+		}
+
+		$user       = wp_get_current_user();
+		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
+
+		// Build the slugs for terms we should hide
+		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . sanitize_title( $r ), $user_roles );
+
+		// Get variation terms
+		$variation_terms = wp_get_object_terms( $variation->get_id(), 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
+
+		// error_log( 'Variation ID ' . $variation->get_id() . ' terms: ' . print_r( $variation_terms, true ) );
+
+		// If the variation has any term that matches one of the hidden terms — hide it
+		foreach ( $variation_terms as $term ) {
+			if ( in_array( $term, $hidden_terms, true ) ) {
+				return false; // This removes the variation entirely from the list
+			}
+		}
+
+		return $variation_data;
+	}
+
+	public function apply_hide_rules_to_args( $args ) {
+
+		if ( empty( $this->rules ) ) {
+			return $args;
+		}
+
+		// 1️. Global rule for all products
+		if ( $this->has_global_hide_rule() ) {
+			// error_log( 'Hiding all products for user roles: ' . print_r( $this->user_roles, true ) );
+			$args['post_parent'] = -1;
+			return $args;
+		}
+
+		// 2️. Category-specific hide
+		$target_terms = $this->get_hidden_target_terms();
+
+		if ( ! empty( $target_terms ) ) {
+
+			// Make term IDs unique for each target
+			foreach ( $target_terms as $target => $term_ids ) {
+				$args['tax_query'][] = array(
+					'taxonomy'         => $target,
+					'field'            => 'term_id',
+					'terms'            => array_values( array_unique( $term_ids ) ),
+					'operator'         => 'NOT IN',
+					'include_children' => false, // prevent hiding products in child categories
+				);
+			}
+		}
+
+		// 3️. Product-specific visibility via taxonomy
+		$hidden_terms = $this->get_hidden_terms_of_custom_taxonomy();
+
+		$tax_query[] = array(
+			'taxonomy' => $this->plugin->taxonomy,
+			'field'    => 'slug',
+			'terms'    => $hidden_terms,
+			'operator' => 'NOT IN',
+		);
+
+		return $args;
+	}
+
+	/**
+	 * FiboSearch compatibility
+	 */
+	public function fibosearch_compatibility( $args ) {
+		return $this->apply_hide_rules_to_args( $args );
+	}
+
+	public function maybe_hide_product_in_rest_api( $args, $request ) {
+		return $this->apply_hide_rules_to_args( $args );
+	}
+
+
+	public function get_login_message(): string {
+		$login_url    = wp_login_url( get_permalink() ); // Redirect back to this product after login.
+		$register_url = '';
+
+		if ( get_option( 'users_can_register' ) ) {
+			$register_url = wp_registration_url();
+		}
+
+		$message  = '<div class="woocommerce-info">';
+		$message .= esc_html__( 'You must be logged in to view this product.', 'riaco-hide-products' ) . ' ';
+		$message .= '<a href="' . esc_url( $login_url ) . '" class="woocommerce-button login-link">';
+		$message .= esc_html__( 'Log in', 'riaco-hide-products' ) . '</a>';
+
+		if ( $register_url ) {
+			$message .= ' ' . esc_html__( 'or', 'riaco-hide-products' ) . ' ';
+			$message .= '<a href="' . esc_url( $register_url ) . '" class="woocommerce-button register-link">';
+			$message .= esc_html__( 'Register', 'riaco-hide-products' ) . '</a>';
+		}
+
+		$message .= '</div>';
+
+		return $message;
+	}
+
+	public function get_hidden_for_role_message(): string {
+		$logout_url = wp_logout_url( wc_get_page_permalink( 'shop' ) ); // Redirect to shop after logout.
+		$shop_url   = wc_get_page_permalink( 'shop' );
+
+		$message  = '<div class="woocommerce-info">';
+		$message .= esc_html__( 'Products are hidden for your user role.', 'riaco-hide-products' ) . ' ';
+
+		$message .= '<a href="' . esc_url( $logout_url ) . '" class="woocommerce-button logout-link">';
+		$message .= esc_html__( 'Log out', 'riaco-hide-products' ) . '</a>.';
+
+		$message .= '</div>';
+
+		return $message;
 	}
 
 
@@ -252,172 +502,4 @@ class ProductVisibility implements ServiceInterface {
 
 		// }
 	} */
-
-
-
-
-
-
-	public function maybe_hide_single_product_page(): void {
-		if ( ! is_singular( 'product' ) ) {
-			return;
-		}
-
-		global $post;
-		if ( ! $post ) {
-			return;
-		}
-
-		$user       = wp_get_current_user();
-		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
-
-		// Step 1: check global hide settings for each role
-		if ( $this->is_product_hidden_for_user_globally( $post->ID, $user_roles ) ) {
-			if ( ! $user->exists() ) {
-				wp_safe_redirect( wp_login_url( get_permalink( $post ) ) );
-				exit;
-			}
-
-			wp_safe_redirect( wc_get_page_permalink( 'shop' ) );
-			exit;
-		} else {
-			// Step 2: check product-specific hidden roles
-			$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
-
-			$assigned_terms = wp_get_object_terms( $post->ID, 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
-			// Normalize for comparison
-			$assigned_terms = is_array( $assigned_terms ) ? $assigned_terms : array();
-
-			if ( array_intersect( $hidden_terms, $assigned_terms ) ) {
-				if ( ! $user->exists() ) {
-					wp_safe_redirect( wp_login_url( get_permalink( $post ) ) );
-					exit;
-				}
-				// logged-in but blocked
-				wp_safe_redirect( wc_get_page_permalink( 'shop' ) );
-				exit;
-			}
-		}
-	}
-
-	public function maybe_hide_product_in_rest_api( $args, $request ) {
-		$user       = wp_get_current_user();
-		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
-
-		// error_log( 'REST API request by user roles: ' . print_r( $user_roles, true ) );
-
-		// Step 1: check global hide settings for each role
-		$global_hidden_roles = $this->get_global_hidden_roles_by_user_roles( $user_roles );
-
-		if ( ! empty( $global_hidden_roles ) ) {
-			$args['post__in'] = array( 0 );
-		} else {
-			$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
-
-			$taxonomy = 'riaco_hpburfw_visibility_role';
-
-			$args['tax_query'][] = array(
-				'taxonomy' => $taxonomy,
-				'field'    => 'slug',
-				'terms'    => $hidden_terms,
-				'operator' => 'NOT IN',
-			);
-		}
-		return $args;
-	}
-
-	public function filter_wc_product_query( $query ): void {
-		error_log( 'Filtering product query filter_wc_product_query' );
-		$this->apply_visibility_query( $query );
-	}
-
-
-	public function fibosearch_compatibility( $args ) {
-
-		$user       = wp_get_current_user();
-		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
-
-		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . $r, $user_roles );
-
-		$taxonomy = 'riaco_hpburfw_visibility_role';
-
-			$args['tax_query'][] = array(
-				'taxonomy' => $taxonomy,
-				'field'    => 'slug',
-				'terms'    => $hidden_terms,
-				'operator' => 'NOT IN',
-			);
-
-			return $args;
-	}
-
-	public function maybe_hide_variation( $variation_data, $product, $variation ) {
-		if ( ! $variation_data ) {
-			return $variation_data;
-		}
-
-		$user       = wp_get_current_user();
-		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
-
-		// Build the slugs for terms we should hide
-		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . sanitize_title( $r ), $user_roles );
-
-		// Get variation terms
-		$variation_terms = wp_get_object_terms( $variation->get_id(), 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
-
-		// error_log( 'Variation ID ' . $variation->get_id() . ' terms: ' . print_r( $variation_terms, true ) );
-
-		// If the variation has any term that matches one of the hidden terms — hide it
-		foreach ( $variation_terms as $term ) {
-			if ( in_array( $term, $hidden_terms, true ) ) {
-				return false; // This removes the variation entirely from the list
-			}
-		}
-
-		return $variation_data;
-	}
-
-	public function get_login_message(): string {
-		$login_url    = wp_login_url( get_permalink() ); // Redirect back to this product after login.
-		$register_url = '';
-
-		if ( get_option( 'users_can_register' ) ) {
-			$register_url = wp_registration_url();
-		}
-
-		$message  = '<div class="woocommerce-info">';
-		$message .= esc_html__( 'You must be logged in to view this product.', 'riaco-hide-products' ) . ' ';
-		$message .= '<a href="' . esc_url( $login_url ) . '" class="woocommerce-button login-link">';
-		$message .= esc_html__( 'Log in', 'riaco-hide-products' ) . '</a>';
-
-		if ( $register_url ) {
-			$message .= ' ' . esc_html__( 'or', 'riaco-hide-products' ) . ' ';
-			$message .= '<a href="' . esc_url( $register_url ) . '" class="woocommerce-button register-link">';
-			$message .= esc_html__( 'Register', 'riaco-hide-products' ) . '</a>';
-		}
-
-		$message .= '</div>';
-
-		return $message;
-	}
-
-	public function get_hidden_for_role_message(): string {
-		$logout_url = wp_logout_url( wc_get_page_permalink( 'shop' ) ); // Redirect to shop after logout.
-		$shop_url   = wc_get_page_permalink( 'shop' );
-
-		$message  = '<div class="woocommerce-info">';
-		$message .= esc_html__( 'This product is hidden for your user role.', 'riaco-hide-products' ) . ' ';
-
-		$message .= '<a href="' . esc_url( $shop_url ) . '" class="woocommerce-button shop-link">';
-		$message .= esc_html__( 'Return to shop', 'riaco-hide-products' ) . '</a>';
-
-		$message .= ' ' . esc_html__( 'or', 'riaco-hide-products' ) . ' ';
-
-		$message .= '<a href="' . esc_url( $logout_url ) . '" class="woocommerce-button logout-link">';
-		$message .= esc_html__( 'Log out', 'riaco-hide-products' ) . '</a>';
-
-		$message .= '</div>';
-
-		return $message;
-	}
 }

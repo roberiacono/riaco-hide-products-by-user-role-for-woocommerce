@@ -24,3 +24,16 @@ Autoloader::register();
 // Now you can instantiate your plugin
 $riaco_plugin = new Plugin( __FILE__ );
 $riaco_plugin->load();
+
+// define compatibility with HPOS Woo
+function riaco_hpburfw_hpos_compatibility() {
+
+	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+			'custom_order_tables',
+			__FILE__,
+			true // true (compatible, default) or false (not compatible)
+		);
+	}
+}
+add_action( 'before_woocommerce_init', 'riaco_hpburfw_hpos_compatibility' );
