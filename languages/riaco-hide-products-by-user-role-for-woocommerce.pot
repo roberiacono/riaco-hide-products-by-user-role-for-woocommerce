@@ -1,0 +1,133 @@
+# Copyright (C) 2025 Roberto Iacono
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: RIACO Hide Products by User Role 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/riaco-hide-products-by-user-role-for-woocommerce\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-10-24T22:11:13+02:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: riaco-hide-products-by-user-role-for-woocommerce\n"
+
+#. Plugin Name of the plugin
+#: riaco-hide-products-by-user-role-for-woocommerce.php
+msgid "RIACO Hide Products by User Role"
+msgstr ""
+
+#. Description of the plugin
+#: riaco-hide-products-by-user-role-for-woocommerce.php
+msgid "Hide WooCommerce products by WordPress user role."
+msgstr ""
+
+#. Author of the plugin
+#: riaco-hide-products-by-user-role-for-woocommerce.php
+msgid "Roberto Iacono"
+msgstr ""
+
+#: includes/Admin/class-custom-taxonomy.php:50
+#: includes/Admin/class-product-visibility-tab.php:56
+msgid "Hide by Role"
+msgstr ""
+
+#: includes/Admin/class-product-visibility-tab.php:76
+msgid "Hide this product for users with this role."
+msgstr ""
+
+#: includes/Admin/class-product-visibility-tab.php:122
+#: includes/Admin/class-product-visibility-tab.php:214
+msgid "Security check failed."
+msgstr ""
+
+#: includes/Admin/class-product-visibility-tab.php:127
+#: includes/class-plugin.php:147
+msgid "Guest"
+msgstr ""
+
+#: includes/Admin/class-product-visibility-tab.php:162
+msgid "No visibility roles found."
+msgstr ""
+
+#: includes/Admin/class-product-visibility-tab.php:183
+msgid "Hide this variation for:"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:86
+msgid "All Products"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:91
+msgid "Product Category"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:111
+msgid "Move up"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:112
+msgid "Move down"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:113
+msgid "Remove"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:136
+msgid "Hide by User Roles"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:203
+msgid "Hide products by user roles"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:205
+msgid "Set global hide by user roles rules for products."
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:220
+msgid "User Role"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:221
+msgid "Target"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:222
+msgid "Terms"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:223
+msgid "Actions"
+msgstr ""
+
+#: includes/Admin/class-settings-page.php:231
+msgid "Add Rule"
+msgstr ""
+
+#: includes/Frontend/class-product-visibility.php:503
+msgid "You must be logged in to view this product."
+msgstr ""
+
+#: includes/Frontend/class-product-visibility.php:505
+msgid "Log in"
+msgstr ""
+
+#: includes/Frontend/class-product-visibility.php:508
+msgid "or"
+msgstr ""
+
+#: includes/Frontend/class-product-visibility.php:510
+msgid "Register"
+msgstr ""
+
+#: includes/Frontend/class-product-visibility.php:526
+msgid "Products are hidden for your user role."
+msgstr ""
+
+#: includes/Frontend/class-product-visibility.php:529
+msgid "Log out"
+msgstr ""
