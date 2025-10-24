@@ -21,6 +21,9 @@
     opacity: 0.3;
     cursor: default;
 }
+#riaco-hpburfw-rules .remove-row{
+  color: #b32d2e;
+}
 
 #riaco-hpburfw-rules select {
     width: 100%;

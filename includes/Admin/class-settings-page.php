@@ -83,12 +83,12 @@ class Settings_Page implements ServiceInterface {
 		$targets = array(
 			array(
 				'id'       => 'all_products',
-				'label'    => __( 'All Products', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+				'label'    => esc_html__( 'All Products', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 				'taxonomy' => null,
 			),
 			array(
 				'id'       => 'product_cat',
-				'label'    => __( 'Product Category', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+				'label'    => esc_html__( 'Product Category', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 				'taxonomy' => 'product_cat',
 				'terms'    => $this->get_taxonomy_tree( 'product_cat' ),
 			),
@@ -105,9 +105,12 @@ class Settings_Page implements ServiceInterface {
 			'riaco-hpburfw-admin-js',
 			'riaco_hpburfw_data',
 			array(
-				'roles'   => $roles,
-				'targets' => $targets,
-				'rules'   => ! empty( $rules ) ? $rules : array(),
+				'roles'      => $roles,
+				'targets'    => $targets,
+				'rules'      => ! empty( $rules ) ? $rules : array(),
+				'move_up'    => __( 'Move up', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+				'move_down'  => __( 'Move down', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+				'remove_row' => __( 'Remove', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 			)
 		);
 
@@ -130,7 +133,7 @@ class Settings_Page implements ServiceInterface {
 	 * @return array Modified sections.
 	 */
 	public function add_settings_section( array $sections ): array {
-		$sections['riaco_hpburfw_rules'] = __( 'Hide by User Roles', 'riaco-hide-products-by-user-role-for-woocommerce' );
+		$sections['riaco_hpburfw_rules'] = esc_html__( 'Hide by User Roles', 'riaco-hide-products-by-user-role-for-woocommerce' );
 		return $sections;
 	}
 
@@ -194,37 +197,39 @@ class Settings_Page implements ServiceInterface {
 	 * Render the settings page.
 	 */
 	public function settings_page() {
-
 		?>
+		
 		<div class="wrap">
-			<h1>Hide products by user toles</h1>
+			<h1><?php echo esc_html__( 'Hide products by user roles', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></h1>
 			<p>
-			Set global hide by user roles rules for products.
+				<?php echo esc_html__( 'Set global hide by user roles rules for products.', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?>
 			</p>
 
-				<div class="riaco-table-responsive">
+			<div class="riaco-table-responsive">
 				<table class="wp-list-table widefat fixed striped" id="riaco-hpburfw-rules">
-				<colgroup>
-					<col style="width: 100px;">   <!-- Priority -->
-					<col>                        <!-- Role -->
-					<col>                        <!-- Target -->
-					<col>                        <!-- Terms -->
-					<col style="width: 100px;">  <!-- Actions -->
-				</colgroup>
-					<thead>
-						<tr>
-							<th></th>
-							<th>User Role</th>
-							<th>Target</th>
-							<th>Terms</th>
-							<th>Actions</th>
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
+					<colgroup>
+						<col style="width: 100px;">   <!-- Priority -->
+						<col>                        <!-- Role -->
+						<col>                        <!-- Target -->
+						<col>                        <!-- Terms -->
+						<col style="width: 100px;">  <!-- Actions -->
+					</colgroup>
+						<thead>
+							<tr>
+								<th></th>
+								<th><?php echo esc_html__( 'User Role', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'Target', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'Terms', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'Actions', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
 				</div>
 				<p>
-					<button type="button" class="button" id="add-rule">Add Rule</button>
+					<button type="button" class="button" id="add-rule">
+						<?php echo esc_html__( 'Add Rule', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?>
+					</button>
 				</p>
 
 		</div>

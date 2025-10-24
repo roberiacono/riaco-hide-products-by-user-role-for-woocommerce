@@ -68,14 +68,14 @@ jQuery(document).ready(function ($) {
           <div class="riaco-hpburfw-item-reorder-nav">
             <button type="button" class="move-up ${
               index === 0 ? "wc-move-disabled" : ""
-            }" aria-label="Move up">
+            }" aria-label="${riaco_hpburfw_data.move_up}">
               <span class="dashicons dashicons-arrow-up-alt2"></span>
             </button>
             <button type="button" class="move-down ${
               index === riaco_hpburfw_data.rules.length - 1
                 ? "wc-move-disabled"
                 : ""
-            }" aria-label="Move down">
+            }" aria-label="${riaco_hpburfw_data.move_down}">
               <span class="dashicons dashicons-arrow-down-alt2"></span>
             </button>
             <input type="hidden" name="riaco_hpburfw_rules[${index}][order]" value="${index}">
@@ -101,7 +101,9 @@ jQuery(document).ready(function ($) {
         </td>
   
         <td>
-          <button type="button" class="button button-link remove-row">Remove</button>
+          <button type="button" class="button button-link remove-row">${
+            riaco_hpburfw_data.remove_row
+          }</button>
         </td>
       </tr>
     `;
