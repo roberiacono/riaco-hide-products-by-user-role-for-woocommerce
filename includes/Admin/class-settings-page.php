@@ -152,7 +152,7 @@ class SettingsPage implements ServiceInterface {
 			return;
 		}
 
-		error_log( "REQUEST['riaco_hpburfw_rules'] =" . print_r( $_REQUEST['riaco_hpburfw_rules'], true ) );
+		// error_log( "REQUEST['riaco_hpburfw_rules'] =" . print_r( $_REQUEST['riaco_hpburfw_rules'], true ) );
 
 		$sanitized_rules = array_map(
 			function ( $rule ) {
@@ -169,7 +169,7 @@ class SettingsPage implements ServiceInterface {
 			$_REQUEST['riaco_hpburfw_rules']
 		);
 
-		error_log( 'sanitized_rules = ' . print_r( $sanitized_rules, true ) );
+		// error_log( 'sanitized_rules = ' . print_r( $sanitized_rules, true ) );
 
 		update_option( 'riaco_hpburfw_rules', $sanitized_rules );
 	}
@@ -179,13 +179,20 @@ class SettingsPage implements ServiceInterface {
 
 		?>
 		<div class="wrap">
-	<h1>Product Visibility Rules</h1>
+	<h1>Hide products by user toles</h1>
 	<p>
-	Set default global visibility rules for products.
+	Set global hide by user roles rules for products.
 	</p>
-	<!-- <form method="post" action="options.php"> -->
-		<?php // settings_fields( 'riaco_hpburfw_group' ); ?>
+
+		<div class="riaco-table-responsive">
 		<table class="wp-list-table widefat fixed striped" id="riaco-hpburfw-rules">
+		<colgroup>
+			<col style="width: 100px;">   <!-- Priority -->
+			<col>                        <!-- Role -->
+			<col>                        <!-- Target -->
+			<col>                        <!-- Terms -->
+			<col style="width: 100px;">  <!-- Actions -->
+		</colgroup>
 			<thead>
 				<tr>
 					<th></th>
@@ -197,11 +204,11 @@ class SettingsPage implements ServiceInterface {
 			</thead>
 			<tbody></tbody>
 		</table>
-
+		</div>
 		<p>
 			<button type="button" class="button" id="add-rule">Add Rule</button>
 		</p>
-	<!-- </form> -->
+
 </div>
 
 		<?php

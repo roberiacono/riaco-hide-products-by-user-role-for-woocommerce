@@ -30,6 +30,15 @@
     width: 100%;
 }
 
+.riaco-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  #riaco-hpburfw-rules {
+  min-width: 800px; /* prevent collapsing too much */
+}
+
 .term-checkbox-list {
     border: 1px solid #ccd0d4;
     background: #fff;
