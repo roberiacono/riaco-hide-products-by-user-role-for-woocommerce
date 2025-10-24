@@ -29,9 +29,7 @@ jQuery(document).ready(function ($) {
     function renderTerms(terms, level = 0) {
       return terms
         .map((term) => {
-          const checked = rule.terms.includes(term.term_id.toString())
-            ? "checked"
-            : "";
+          const checked = rule.terms.includes(term.term_id) ? "checked" : "";
           const hasChildren =
             Array.isArray(term.children) && term.children.length > 0;
           const margin = level * 20;

@@ -11,14 +11,20 @@ class SettingsPage implements ServiceInterface {
 
 	private $plugin;
 
+	private string $option_key = 'riaco_hpburfw_rules';
+
 	function __construct( $plugin ) {
 		$this->plugin = $plugin;
 	}
 
 	public function register(): void {
 
-		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
-		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		// add_action( 'admin_init', array( $this, 'register_settings' ) );
+		// Add section
+		add_filter( 'woocommerce_get_sections_products', array( $this, 'add_settings_section' ) );
+
+		add_filter( 'woocommerce_settings_products', array( $this, 'add_custom_settings_fields' ) );
+		add_action( 'woocommerce_settings_save_products', array( $this, 'save_custom_settings' ) );
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 	}
@@ -26,12 +32,12 @@ class SettingsPage implements ServiceInterface {
 
 	public function enqueue_admin_scripts() {
 
-		if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'riaco-hpburfw-hide-products' ) {
+		if ( empty( $_GET['section'] ) || 'riaco_hpburfw_rules' !== $_GET['section'] ) {
 			return;
 		}
 
 		$roles = $this->plugin->get_roles();
-		$rules = get_option( 'riaco_hpburfw_rules', array() );
+		$rules = get_option( $this->option_key, array() );
 
 		wp_enqueue_script(
 			'riaco-hpburfw-admin-js',
@@ -80,6 +86,25 @@ class SettingsPage implements ServiceInterface {
 		);
 	}
 
+	public function add_settings_section( array $sections ): array {
+		$sections['riaco_hpburfw_rules'] = __( 'Hide by User Roles', 'riaco-hide-products' );
+		return $sections;
+	}
+
+	public function add_custom_settings_fields() {
+		// exit if it is not our section
+		if ( empty( $_GET['section'] ) || 'riaco_hpburfw_rules' !== $_GET['section'] ) {
+			return;
+		}
+
+		$this->settings_page();
+	}
+
+
+
+
+
+
 	/**
 	 * Build a hierarchical (nested) array of taxonomy terms.
 	 *
@@ -115,22 +140,42 @@ class SettingsPage implements ServiceInterface {
 	}
 
 
-	public function add_admin_menu() {
-		add_submenu_page(
-			'woocommerce',
-			'Hide Products by User Role',
-			'Hide by Role',
-			'manage_options',
-			'riaco-hpburfw-hide-products',
-			array( $this, 'settings_page' )
+	/*
+	public function register_settings() {
+		register_setting( 'riaco_hpburfw_group', $this->option_key );
+	}
+	*/
+
+
+	public function save_custom_settings(): void {
+		if ( empty( $_REQUEST['riaco_hpburfw_rules'] ) || ! is_array( $_REQUEST['riaco_hpburfw_rules'] ) ) {
+			return;
+		}
+
+		error_log( "REQUEST['riaco_hpburfw_rules'] =" . print_r( $_REQUEST['riaco_hpburfw_rules'], true ) );
+
+		$sanitized_rules = array_map(
+			function ( $rule ) {
+				return array(
+					'order'  => isset( $rule['order'] ) ? absint( $rule['order'] ) : 0,
+					'role'   => isset( $rule['role'] ) ? sanitize_text_field( $rule['role'] ) : '',
+					'target' => isset( $rule['target'] ) ? sanitize_text_field( $rule['target'] ) : '',
+					// Optional terms (array of IDs)
+					'terms'  => isset( $rule['terms'] ) && is_array( $rule['terms'] )
+							? array_map( 'absint', $rule['terms'] )
+							: array(),
+				);
+			},
+			$_REQUEST['riaco_hpburfw_rules']
 		);
+
+		error_log( 'sanitized_rules = ' . print_r( $sanitized_rules, true ) );
+
+		update_option( 'riaco_hpburfw_rules', $sanitized_rules );
 	}
 
-	function register_settings() {
-		register_setting( 'riaco_hpburfw_group', 'riaco_hpburfw_rules' );
-	}
 
-	function settings_page() {
+	public function settings_page() {
 
 		?>
 		<div class="wrap">
@@ -138,8 +183,8 @@ class SettingsPage implements ServiceInterface {
 	<p>
 	Set default global visibility rules for products.
 	</p>
-	<form method="post" action="options.php">
-		<?php settings_fields( 'riaco_hpburfw_group' ); ?>
+	<!-- <form method="post" action="options.php"> -->
+		<?php // settings_fields( 'riaco_hpburfw_group' ); ?>
 		<table class="wp-list-table widefat fixed striped" id="riaco-hpburfw-rules">
 			<thead>
 				<tr>
@@ -156,9 +201,7 @@ class SettingsPage implements ServiceInterface {
 		<p>
 			<button type="button" class="button" id="add-rule">Add Rule</button>
 		</p>
-
-		<?php submit_button(); ?>
-	</form>
+	<!-- </form> -->
 </div>
 
 		<?php
