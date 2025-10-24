@@ -4,6 +4,7 @@
  *
  * @package Riaco\HideProducts\Admin
  */
+
 namespace Riaco\HideProducts\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -12,28 +13,45 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Riaco\HideProducts\Interfaces\ServiceInterface;
 
+/**
+ * Custom Taxonomy class.
+ */
+class Custom_Taxonomy implements ServiceInterface {
 
-class CustomTaxonomy implements ServiceInterface {
-
+	/**
+	 * The main plugin instance.
+	 *
+	 * @var class
+	 */
 	private $plugin;
 
-	function __construct( $plugin ) {
+	/**
+	 * Constructor.
+	 *
+	 * @param class $plugin The main plugin instance.
+	 */
+	public function __construct( $plugin ) {
 		$this->plugin = $plugin;
 	}
 
+	/**
+	 * Register the service.
+	 */
 	public function register(): void {
 		add_action( 'init', array( $this, 'register_taxonomy' ) );
 		add_action( 'init', array( $this, 'maybe_create_default_terms' ), 11 );
 	}
 
+	/**
+	 * Register the custom taxonomy.
+	 */
 	public function register_taxonomy(): void {
 		$labels = array(
-			'name'          => __( 'Hide by Role', 'riaco-hide-products' ),
-			'singular_name' => __( 'Hide by Role', 'riaco-hide-products' ),
+			'name' => __( 'Hide by Role', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 		);
 
 		register_taxonomy(
-			$this->plugin->taxonomy,
+			$this->plugin->custom_taxonomy,
 			array(
 				'product',
 				'product_variation',
@@ -42,7 +60,7 @@ class CustomTaxonomy implements ServiceInterface {
 				'labels'            => $labels,
 
 				'public'            => false,
-				'show_ui'           => true, // hidden from admin menu
+				'show_ui'           => true,
 				'show_in_rest'      => false,
 				'hierarchical'      => true,
 				'rewrite'           => false,
@@ -61,21 +79,15 @@ class CustomTaxonomy implements ServiceInterface {
 	 * Create default terms for all user roles (including guest).
 	 */
 	public function maybe_create_default_terms(): void {
-		$taxonomy = $this->plugin->taxonomy;
+		$taxonomy = $this->plugin->custom_taxonomy;
 
-		// Ensure taxonomy is registered first
+		// Ensure taxonomy is registered first.
 		if ( ! taxonomy_exists( $taxonomy ) ) {
 			return;
 		}
 
-		// Get all WordPress roles
-		$roles = wp_roles()->roles;
-
-		// Add the virtual "guest" role at the top
-		$roles = array_merge(
-			array( 'guest' => array( 'name' => __( 'Guest', 'riaco-hide-products' ) ) ),
-			$roles
-		);
+		// Get all WordPress roles.
+		$roles = $this->plugin->get_roles();
 
 		foreach ( $roles as $role_key => $role_data ) {
 			$term_slug = 'hide-for-' . sanitize_title( $role_key );

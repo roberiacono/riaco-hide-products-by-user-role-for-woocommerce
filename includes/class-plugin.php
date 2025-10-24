@@ -7,19 +7,28 @@
 
 namespace Riaco\HideProducts;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use Riaco\HideProducts\Interfaces\ServiceInterface;
 
-use Riaco\HideProducts\Admin\CustomTaxonomy;
-use Riaco\HideProducts\Admin\ProductVisibilityTab;
-use Riaco\HideProducts\Admin\SettingsPage;
+use Riaco\HideProducts\Admin\Custom_Taxonomy;
+use Riaco\HideProducts\Admin\Product_Visibility_Tab;
+use Riaco\HideProducts\Admin\Settings_Page;
 
-use Riaco\HideProducts\Frontend\ProductVisibility;
+use Riaco\HideProducts\Frontend\Product_Visibility;
 
 /**
  * Main plugin class.
  */
 class Plugin {
 
+	/**
+	 * Plugin version.
+	 *
+	 * @var string
+	 */
 	public string $version = '1.0.0';
 	/**
 	 * The main plugin file.
@@ -43,7 +52,19 @@ class Plugin {
 	 */
 	private array $services = array();
 
-	public $taxonomy = 'riaco_hpburfw_visibility_role';
+	/**
+	 * Taxonomy for user role visibility.
+	 *
+	 * @var string
+	 */
+	public string $custom_taxonomy = 'riaco_hpburfw_visibility_role';
+
+	/**
+	 * Option key for storing rules.
+	 *
+	 * @var string
+	 */
+	public string $option_key = 'riaco_hpburfw_rules';
 
 	/**
 	 * Constructor.
@@ -55,16 +76,19 @@ class Plugin {
 		$this->loaded = false;
 	}
 
+	/**
+	 * Loads the services.
+	 */
 	private function load_services(): void {
-		$this->services[] = new CustomTaxonomy( $this );
+		$this->services[] = new Custom_Taxonomy( $this );
 
 		if ( is_admin() ) {
-			$this->services[] = new ProductVisibilityTab();
-			$this->services[] = new SettingsPage( $this );
+			$this->services[] = new Product_Visibility_Tab( $this );
+			$this->services[] = new Settings_Page( $this );
 		}
 
 		if ( ! is_admin() ) {
-			$this->services[] = new ProductVisibility( $this );
+			$this->services[] = new Product_Visibility( $this );
 		}
 	}
 
@@ -90,6 +114,11 @@ class Plugin {
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
 	}
 
+	/**
+	 * Initializes the plugin.
+	 *
+	 * @since 1.0.0
+	 */
 	public function init() {
 		$this->load_services();
 		$this->register();
@@ -97,7 +126,9 @@ class Plugin {
 		do_action( 'riaco_hpburfw_loaded', $this );
 	}
 
-
+	/**
+	 * Registers all services.
+	 */
 	private function register(): void {
 		foreach ( $this->services as $service ) {
 			if ( $service instanceof ServiceInterface ) {
@@ -106,9 +137,14 @@ class Plugin {
 		}
 	}
 
+	/**
+	 * Retrieves all user roles including 'guest'.
+	 *
+	 * @return array
+	 */
 	public function get_roles() {
 		$roles = array_merge(
-			array( 'guest' => array( 'name' => __( 'Guest', 'riaco-hide-products' ) ) ),
+			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role-for-woocommerce' ) ) ),
 			wp_roles()->roles
 		);
 		return $roles;

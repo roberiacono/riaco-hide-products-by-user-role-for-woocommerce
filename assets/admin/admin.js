@@ -1,5 +1,5 @@
 jQuery(document).ready(function ($) {
-  console.log("riaco_hpburfw_data:", riaco_hpburfw_data);
+  //console.log("riaco_hpburfw_data:", riaco_hpburfw_data);
 
   function renderRow(index, rule) {
     const roles = riaco_hpburfw_data.roles;
