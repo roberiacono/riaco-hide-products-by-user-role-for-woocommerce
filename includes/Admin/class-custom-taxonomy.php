@@ -61,6 +61,7 @@ class Custom_Taxonomy implements ServiceInterface {
 
 				'public'            => false,
 				'show_ui'           => true,
+				'show_in_menu'      => false,
 				'show_in_rest'      => false,
 				'hierarchical'      => true,
 				'rewrite'           => false,
