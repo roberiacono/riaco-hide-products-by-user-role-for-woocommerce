@@ -162,6 +162,7 @@ class Settings_Page implements ServiceInterface {
 			return;
 		}
 
+		error_log( 'Saving RIACO HPBURFW rules...' . print_r( $_POST['riaco_hpburfw_rules'], true ) );
 		if ( ! isset( $_POST['riaco_hpburfw_rules'] ) || ! is_array( $_POST['riaco_hpburfw_rules'] ) ) {
 			return;
 		}

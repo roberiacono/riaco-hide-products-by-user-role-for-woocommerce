@@ -24,7 +24,7 @@ delete_option( 'riaco_hpburfw_rules' );
 
 $custom_taxonomy = 'riaco_hpburfw_visibility_role';
 
-// Example inside a condition
+// Example inside a condition.
 if ( ! taxonomy_exists( $custom_taxonomy ) ) {
 	register_taxonomy(
 		$custom_taxonomy,
@@ -35,8 +35,7 @@ if ( ! taxonomy_exists( $custom_taxonomy ) ) {
 	);
 }
 
-
-// remove all custom taxonomies
+// remove all custom taxonomies.
 $terms = get_terms(
 	array(
 		'taxonomy'   => $custom_taxonomy,
@@ -50,5 +49,5 @@ foreach ( $terms as $singular_term ) {
 	wp_delete_term( $singular_term->term_id, $custom_taxonomy );
 }
 
-// Remove the taxonomy children option
+// Remove the taxonomy children option.
 delete_option( "{$custom_taxonomy}_children" );
