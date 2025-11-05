@@ -8,7 +8,7 @@ Requires PHP: 7.4
 License: GPL v2 or later  
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
-Hide WooCommerce products, categories, and variations based on user roles or guest access. Easily manage visibility rules directly from WooCommerce settings.
+Hide WooCommerce products, categories, and variations based on user roles or guest access.
 
 == Description ==
 

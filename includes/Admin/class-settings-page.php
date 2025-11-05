@@ -83,12 +83,12 @@ class Settings_Page implements ServiceInterface {
 		$targets = array(
 			array(
 				'id'       => 'all_products',
-				'label'    => esc_html__( 'All Products', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+				'label'    => esc_html__( 'All Products', 'riaco-hide-products-by-user-role' ),
 				'taxonomy' => null,
 			),
 			array(
 				'id'       => 'product_cat',
-				'label'    => esc_html__( 'Product Category', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+				'label'    => esc_html__( 'Product Category', 'riaco-hide-products-by-user-role' ),
 				'taxonomy' => 'product_cat',
 				'terms'    => $this->get_taxonomy_tree( 'product_cat' ),
 			),
@@ -108,9 +108,9 @@ class Settings_Page implements ServiceInterface {
 				'roles'      => $roles,
 				'targets'    => $targets,
 				'rules'      => ! empty( $rules ) ? $rules : array(),
-				'move_up'    => __( 'Move up', 'riaco-hide-products-by-user-role-for-woocommerce' ),
-				'move_down'  => __( 'Move down', 'riaco-hide-products-by-user-role-for-woocommerce' ),
-				'remove_row' => __( 'Remove', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+				'move_up'    => __( 'Move up', 'riaco-hide-products-by-user-role' ),
+				'move_down'  => __( 'Move down', 'riaco-hide-products-by-user-role' ),
+				'remove_row' => __( 'Remove', 'riaco-hide-products-by-user-role' ),
 			)
 		);
 
@@ -133,7 +133,7 @@ class Settings_Page implements ServiceInterface {
 	 * @return array Modified sections.
 	 */
 	public function add_settings_section( array $sections ): array {
-		$sections['riaco_hpburfw_rules'] = esc_html__( 'Hide by User Roles', 'riaco-hide-products-by-user-role-for-woocommerce' );
+		$sections['riaco_hpburfw_rules'] = esc_html__( 'Hide by User Roles', 'riaco-hide-products-by-user-role' );
 		return $sections;
 	}
 
@@ -205,9 +205,9 @@ class Settings_Page implements ServiceInterface {
 		?>
 		
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Hide products by user roles', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></h1>
+			<h1><?php echo esc_html__( 'Hide products by user roles', 'riaco-hide-products-by-user-role' ); ?></h1>
 			<p>
-				<?php echo esc_html__( 'Set global hide by user roles rules for products.', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?>
+				<?php echo esc_html__( 'Set global hide by user roles rules for products.', 'riaco-hide-products-by-user-role' ); ?>
 			</p>
 
 			<div class="riaco-table-responsive">
@@ -222,10 +222,10 @@ class Settings_Page implements ServiceInterface {
 						<thead>
 							<tr>
 								<th></th>
-								<th><?php echo esc_html__( 'User Role', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
-								<th><?php echo esc_html__( 'Target', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
-								<th><?php echo esc_html__( 'Terms', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
-								<th><?php echo esc_html__( 'Actions', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'User Role', 'riaco-hide-products-by-user-role' ); ?></th>
+								<th><?php echo esc_html__( 'Target', 'riaco-hide-products-by-user-role' ); ?></th>
+								<th><?php echo esc_html__( 'Terms', 'riaco-hide-products-by-user-role' ); ?></th>
+								<th><?php echo esc_html__( 'Actions', 'riaco-hide-products-by-user-role' ); ?></th>
 							</tr>
 						</thead>
 						<tbody></tbody>
@@ -233,7 +233,7 @@ class Settings_Page implements ServiceInterface {
 				</div>
 				<p>
 					<button type="button" class="button" id="add-rule">
-						<?php echo esc_html__( 'Add Rule', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?>
+						<?php echo esc_html__( 'Add Rule', 'riaco-hide-products-by-user-role' ); ?>
 					</button>
 				</p>
 

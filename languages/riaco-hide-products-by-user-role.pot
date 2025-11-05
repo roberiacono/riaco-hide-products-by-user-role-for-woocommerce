@@ -3,29 +3,29 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: RIACO Hide Products by User Role 1.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/riaco-hide-products-by-user-role-for-woocommerce\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/riaco-hide-products-by-user-role\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-10-24T22:11:13+02:00\n"
+"POT-Creation-Date: 2025-11-05T21:25:13+01:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
-"X-Domain: riaco-hide-products-by-user-role-for-woocommerce\n"
+"X-Domain: riaco-hide-products-by-user-role\n"
 
 #. Plugin Name of the plugin
-#: riaco-hide-products-by-user-role-for-woocommerce.php
+#: riaco-hide-products-by-user-role.php
 msgid "RIACO Hide Products by User Role"
 msgstr ""
 
 #. Description of the plugin
-#: riaco-hide-products-by-user-role-for-woocommerce.php
+#: riaco-hide-products-by-user-role.php
 msgid "Hide WooCommerce products by WordPress user role."
 msgstr ""
 
 #. Author of the plugin
-#: riaco-hide-products-by-user-role-for-woocommerce.php
+#: riaco-hide-products-by-user-role.php
 msgid "Roberto Iacono"
 msgstr ""
 
@@ -80,31 +80,31 @@ msgstr ""
 msgid "Hide by User Roles"
 msgstr ""
 
-#: includes/Admin/class-settings-page.php:203
+#: includes/Admin/class-settings-page.php:208
 msgid "Hide products by user roles"
 msgstr ""
 
-#: includes/Admin/class-settings-page.php:205
+#: includes/Admin/class-settings-page.php:210
 msgid "Set global hide by user roles rules for products."
 msgstr ""
 
-#: includes/Admin/class-settings-page.php:220
+#: includes/Admin/class-settings-page.php:225
 msgid "User Role"
 msgstr ""
 
-#: includes/Admin/class-settings-page.php:221
+#: includes/Admin/class-settings-page.php:226
 msgid "Target"
 msgstr ""
 
-#: includes/Admin/class-settings-page.php:222
+#: includes/Admin/class-settings-page.php:227
 msgid "Terms"
 msgstr ""
 
-#: includes/Admin/class-settings-page.php:223
+#: includes/Admin/class-settings-page.php:228
 msgid "Actions"
 msgstr ""
 
-#: includes/Admin/class-settings-page.php:231
+#: includes/Admin/class-settings-page.php:236
 msgid "Add Rule"
 msgstr ""
 

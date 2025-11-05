@@ -144,7 +144,7 @@ class Plugin {
 	 */
 	public function get_roles() {
 		$roles = array_merge(
-			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role-for-woocommerce' ) ) ),
+			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role' ) ) ),
 			wp_roles()->roles
 		);
 		return $roles;

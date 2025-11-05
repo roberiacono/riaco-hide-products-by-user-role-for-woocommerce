@@ -4,7 +4,7 @@
  * Description: Hide WooCommerce products by WordPress user role.
  * Version:     1.0.0
  * Author:      Roberto Iacono
- * Text Domain: riaco-hide-products-by-user-role-for-woocommerce
+ * Text Domain: riaco-hide-products-by-user-role
  * Domain Path: /languages
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html

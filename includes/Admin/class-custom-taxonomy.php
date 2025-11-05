@@ -47,7 +47,7 @@ class Custom_Taxonomy implements ServiceInterface {
 	 */
 	public function register_taxonomy(): void {
 		$labels = array(
-			'name' => esc_html__( 'Hide by Role', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+			'name' => esc_html__( 'Hide by Role', 'riaco-hide-products-by-user-role' ),
 		);
 
 		register_taxonomy(

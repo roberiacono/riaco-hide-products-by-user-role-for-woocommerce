@@ -53,7 +53,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 	 */
 	public function add_tab( array $tabs ): array {
 		$tabs['riaco_visibility'] = array(
-			'label'    => esc_html__( 'Hide by Role', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+			'label'    => esc_html__( 'Hide by Role', 'riaco-hide-products-by-user-role' ),
 			'target'   => 'riaco_hpburfw_hide_by_role_tab',
 			'class'    => array(),
 			'priority' => 50,
@@ -73,7 +73,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 		?>
 		<div id="riaco_hpburfw_hide_by_role_tab" class="panel woocommerce_options_panel hidden">
 			<div class="option_group" style="padding: 1em 1.5em;">
-				<h4><?php echo esc_html__( 'Hide this product for users with this role.', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></h4>
+				<h4><?php echo esc_html__( 'Hide this product for users with this role.', 'riaco-hide-products-by-user-role' ); ?></h4>
 			</div>
 
 			<div class="option_group">
@@ -119,12 +119,12 @@ class Product_Visibility_Tab implements ServiceInterface {
 		}
 
 		if ( ! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_visibility_nonce'] ), 'riaco_hpburfw_visibility_save' ) ) {
-			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
+			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role' ) );
 		}
 
 		// Start with guest role.
 		$roles_data = array_merge(
-			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role-for-woocommerce' ) ) ),
+			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role' ) ) ),
 			wp_roles()->roles
 		);
 
@@ -159,7 +159,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 		);
 
 		if ( empty( $terms ) || is_wp_error( $terms ) ) {
-			echo '<p>' . esc_html__( 'No visibility roles found.', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</p>';
+			echo '<p>' . esc_html__( 'No visibility roles found.', 'riaco-hide-products-by-user-role' ) . '</p>';
 			return;
 		}
 
@@ -180,7 +180,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 		$current_terms = wp_get_object_terms( $variation->ID, $taxonomy, array( 'fields' => 'slugs' ) );
 		?>
 		<div class="form-row form-row-full">';
-			<h4><?php echo esc_html__( 'Hide this variation for:', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></h4>
+			<h4><?php echo esc_html__( 'Hide this variation for:', 'riaco-hide-products-by-user-role' ); ?></h4>
 			<?php
 			foreach ( $terms as $term ) {
 				$field_id = 'riaco_hpburfw_term_' . esc_attr( $term->slug ) . "_{$loop}";
@@ -211,7 +211,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 		}
 
 		if ( ! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_visibility_nonce'] ), 'riaco_hpburfw_save_visibility' ) ) {
-			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
+			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role' ) );
 		}
 
 		$taxonomy = $this->plugin->custom_taxonomy;
