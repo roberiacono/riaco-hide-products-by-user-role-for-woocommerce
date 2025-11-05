@@ -1,4 +1,4 @@
-=== RIACO Hide Products by User Role ===
+=== RIACO Hide Products by User Role For WooCommerce ===
 Contributors: prototipo88  
 Tags:  hide products, product restrictions, products visibility, woocommerce 
 Requires at least: 6.2
