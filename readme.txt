@@ -1,4 +1,4 @@
-=== RIACO Hide Products by User Role ===
+=== RIACO Hide Products by User Role For WooCommerce ===
 Contributors: prototipo88  
 Tags:  hide products, product restrictions, products visibility, woocommerce 
 Requires at least: 6.2
@@ -8,7 +8,7 @@ Requires PHP: 7.4
 License: GPL v2 or later  
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
-Hide WooCommerce products, categories, and variations based on user roles or guest access. Easily manage visibility rules directly from WooCommerce settings.
+Hide WooCommerce products, categories, and variations based on user roles or guest access.
 
 == Description ==
 
