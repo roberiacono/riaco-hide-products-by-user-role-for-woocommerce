@@ -59,3 +59,9 @@ No, but you can extend it using filters to support any taxonomy.
 
 = Can I hide product variations? =
 Yes. Each variation can have its own visibility settings in the product edit screen.
+
+== Screenshots ==
+
+1. Global rules to hide products. 
+2. Individual product rule.
+3. Individual product variation rule.
