@@ -83,8 +83,9 @@ class Product_Visibility implements ServiceInterface {
 	 * Get current user roles.
 	 */
 	private function get_current_user_roles(): array {
-		$user = wp_get_current_user();
-		return $user->exists() ? $user->roles : array( 'guest' );
+		$user  = wp_get_current_user();
+		$roles = $user->exists() ? $user->roles : array( 'guest' );
+		return apply_filters( 'riaco_hpburfw_user_roles', $roles, $user );
 	}
 
 	/**
@@ -98,7 +99,7 @@ class Product_Visibility implements ServiceInterface {
 			$rules = array();
 		}
 
-		return $rules;
+		return apply_filters( 'riaco_hpburfw_visibility_rules', $rules );
 	}
 
 	/**
@@ -337,11 +338,13 @@ class Product_Visibility implements ServiceInterface {
 	 */
 	private function redirect_blocked_user( \WP_User $user, int $product_id ): void {
 		if ( ! $user->exists() ) {
-			wp_safe_redirect( wp_login_url( get_permalink( $product_id ) ) );
+			$url = apply_filters( 'riaco_hpburfw_redirect_url', wp_login_url( get_permalink( $product_id ) ), $product_id, $user );
+			wp_safe_redirect( $url );
 			exit;
 		}
 
-		wp_safe_redirect( wc_get_page_permalink( 'shop' ) );
+		$url = apply_filters( 'riaco_hpburfw_redirect_url', wc_get_page_permalink( 'shop' ), $product_id, $user );
+		wp_safe_redirect( $url );
 		exit;
 	}
 

@@ -173,6 +173,63 @@ add_action( 'riaco_hpburfw_loaded', function( $plugin ) {
 } );
 ```
 
+### Filter: `riaco_hpburfw_visibility_rules`
+Modify the global rules array before it is cached and applied to queries. Useful for injecting runtime rules (e.g., subscription-based or time-limited rules).
+
+```php
+add_filter( 'riaco_hpburfw_visibility_rules', function( $rules ) {
+    $rules[] = [
+        'order'  => 99,
+        'role'   => 'subscriber',
+        'target' => 'product_cat',
+        'terms'  => [42],
+    ];
+    return $rules;
+} );
+```
+
+### Filter: `riaco_hpburfw_user_roles`
+Override the roles used for the current user's visibility check. Useful for granting exceptions, mapping custom roles, or testing.
+
+```php
+add_filter( 'riaco_hpburfw_user_roles', function( $roles, $user ) {
+    // Treat premium members as administrators for visibility purposes.
+    if ( $user->exists() && in_array( 'premium_member', $user->roles, true ) ) {
+        return [ 'administrator' ];
+    }
+    return $roles;
+}, 10, 2 );
+```
+
+### Filter: `riaco_hpburfw_redirect_url`
+Customize the URL blocked users are redirected to when they try to access a hidden single product page.
+
+```php
+add_filter( 'riaco_hpburfw_redirect_url', function( $url, $product_id, $user ) {
+    return home_url( '/members-only/' );
+}, 10, 3 );
+```
+
+### Filter: `riaco_hpburfw_roles`
+Add, remove, or rename roles in the plugin's managed list. Affects the settings UI, product tab checkboxes, variation fields, and default term creation everywhere `get_roles()` is called.
+
+```php
+add_filter( 'riaco_hpburfw_roles', function( $roles ) {
+    $roles['premium_member'] = [ 'name' => 'Premium Member' ];
+    return $roles;
+} );
+```
+
+### Action: `riaco_hpburfw_rules_saved`
+Fires after global rules are persisted to the database. Useful for cache invalidation, audit logging, or syncing to external systems.
+
+```php
+add_action( 'riaco_hpburfw_rules_saved', function( $rules ) {
+    // Invalidate a custom cache keyed on the rules.
+    delete_transient( 'my_plugin_visibility_cache' );
+} );
+```
+
 ---
 
 ## Security Conventions

@@ -200,6 +200,7 @@ class Settings_Page implements ServiceInterface {
 		}
 
 		update_option( 'riaco_hpburfw_rules', $sanitized_rules );
+		do_action( 'riaco_hpburfw_rules_saved', $sanitized_rules );
 	}
 
 	/**
