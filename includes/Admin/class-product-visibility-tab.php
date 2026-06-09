@@ -113,8 +113,11 @@ class Product_Visibility_Tab implements ServiceInterface {
 	 */
 	public function save_product_meta( int $post_id ): void {
 
-		if ( ! isset( $_POST['riaco_hpburfw_visibility_nonce'] ) ||
-			( isset( $_POST['riaco_hpburfw_visibility_nonce'] ) && empty( $_POST['riaco_hpburfw_visibility_nonce'] ) ) ) {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
+		if ( empty( $_POST['riaco_hpburfw_visibility_nonce'] ) ) {
 			return;
 		}
 
@@ -177,9 +180,10 @@ class Product_Visibility_Tab implements ServiceInterface {
 			}
 		);
 
-		$current_terms = wp_get_object_terms( $variation->ID, $taxonomy, array( 'fields' => 'slugs' ) );
+		$current_terms = wp_get_object_terms( $variation->get_id(), $taxonomy, array( 'fields' => 'slugs' ) );
+		$current_terms = is_wp_error( $current_terms ) ? array() : $current_terms;
 		?>
-		<div class="form-row form-row-full">';
+		<div class="form-row form-row-full">
 			<h4><?php echo esc_html__( 'Hide this variation for:', 'riaco-hide-products-by-user-role' ); ?></h4>
 			<?php
 			foreach ( $terms as $term ) {
@@ -195,7 +199,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 			?>
 		</div>
 		<?php
-		wp_nonce_field( 'riaco_hpburfw_save_visibility', 'riaco_hpburfw_visibility_nonce' );
+		wp_nonce_field( 'riaco_hpburfw_save_visibility', 'riaco_hpburfw_variation_nonce' );
 	}
 
 	/**
@@ -205,12 +209,16 @@ class Product_Visibility_Tab implements ServiceInterface {
 	 * @param int $i The loop index.
 	 */
 	public function save_variation_visibility_fields( int $variation_id, int $i ): void {
-		if ( ! isset( $_POST['riaco_hpburfw_visibility_nonce'] ) ||
-			( isset( $_POST['riaco_hpburfw_visibility_nonce'] ) && empty( $_POST['riaco_hpburfw_visibility_nonce'] ) ) ) {
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
 		}
 
-		if ( ! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_visibility_nonce'] ), 'riaco_hpburfw_save_visibility' ) ) {
+		if ( empty( $_POST['riaco_hpburfw_variation_nonce'] ) ) {
+			return;
+		}
+
+		if ( ! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_variation_nonce'] ), 'riaco_hpburfw_save_visibility' ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role' ) );
 		}
 

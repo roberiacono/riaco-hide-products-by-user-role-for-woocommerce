@@ -143,6 +143,7 @@ Applied in `Frontend\Product_Visibility::apply_visibility_query()`:
 | `rest_product_query` | filter | Filter REST API product queries |
 | `woocommerce_available_variation` | filter | Hide product variations |
 | `dgwt/wcas/search_query/args` | filter | FiboSearch compatibility |
+| `render_block` | filter | Replace "no products" block message when global hide rule active |
 
 ---
 
@@ -178,11 +179,12 @@ add_action( 'riaco_hpburfw_loaded', function( $plugin ) {
 
 Always follow these patterns when adding features:
 
-- **Nonces** — verify before processing any form save:
-  - Settings page: `riaco_hpburfw_save_rules`
-  - Product tab save: `riaco_hpburfw_visibility_save`
-  - Variation save: `riaco_hpburfw_save_visibility`
-- **Capability check**: `current_user_can('manage_woocommerce')` for admin operations
+- **Capability check first**: `current_user_can('manage_woocommerce')` — check this **before** the nonce in every save handler
+- **Nonces** — verify after the capability check:
+  - Settings page field/action: `riaco_hpburfw_nonce` / `riaco_hpburfw_save_rules`
+  - Product tab field/action: `riaco_hpburfw_visibility_nonce` / `riaco_hpburfw_visibility_save`
+  - Variation field/action: `riaco_hpburfw_variation_nonce` / `riaco_hpburfw_save_visibility`
+  - Note: product tab and variation use **different field names** to avoid collision
 - **Output escaping**: `esc_html__()`, `esc_url()`, `esc_attr()` — never output raw data
 - **Input sanitization**: `sanitize_text_field()`, `sanitize_key()`, `absint()` — never trust raw input
 
@@ -204,6 +206,8 @@ riaco_hpburfw_data = {
 ```
 
 Key functions: `renderRow(index, rule)`, `refreshTable()`, `addRow()`, `moveUp(index)`, `moveDown(index)`, `removeRow(index)`.
+
+**HTML escaping**: The file defines a local `escHtml(s)` helper that must be used whenever inserting any server-supplied string (role names, target labels, term names) into template literals. Never insert these values raw.
 
 The JS manages the dynamic rules table entirely client-side; on form submit the PHP handler sanitizes and persists the state.
 

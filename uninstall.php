@@ -44,9 +44,11 @@ $terms = get_terms(
 );
 
 
-foreach ( $terms as $singular_term ) {
-	wp_delete_term( $singular_term->term_id, $riaco_hpburfw_custom_taxonomy );
+if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+	foreach ( $terms as $singular_term ) {
+		wp_delete_term( $singular_term->term_id, $riaco_hpburfw_custom_taxonomy );
+	}
 }
 
 // Remove the taxonomy children option.
-delete_option( "{$custom_taxonomy}_children" );
+delete_option( "{$riaco_hpburfw_custom_taxonomy}_children" );

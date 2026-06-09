@@ -74,6 +74,9 @@ class Product_Visibility implements ServiceInterface {
 
 		// Plugin FiboSearch compatibility.
 		add_filter( 'dgwt/wcas/search_query/args', array( $this, 'fibosearch_compatibility' ), 10, 1 );
+
+		// Block theme "no products" message (registered once; callback self-gates).
+		add_filter( 'render_block', array( $this, 'filter_no_products_block' ), 10, 2 );
 	}
 
 	/**
@@ -144,8 +147,7 @@ class Product_Visibility implements ServiceInterface {
 	 * @param \WP_Query $query The WP_Query instance to modify.
 	 */
 	private function hide_all_products( \WP_Query $query ): void {
-		$query->set( 'post_parent', -1 ); // no results.
-		add_filter( 'render_block', array( $this, 'filter_no_products_block' ), 10, 2 );
+		$query->set( 'post__in', array( 0 ) ); // no results.
 	}
 
 	/**
@@ -272,17 +274,21 @@ class Product_Visibility implements ServiceInterface {
 	 * @param array  $block The block data.
 	 */
 	public function filter_no_products_block( string $block_content, array $block ): string {
-		if ( 'woocommerce/product-collection-no-results' === $block['blockName'] ) {
-			$user = wp_get_current_user();
-
-			if ( ! $user->exists() ) {
-				return wp_kses_post( $this->get_login_message() );
-			}
-
-			return wp_kses_post( $this->get_hidden_for_role_message() );
+		if ( 'woocommerce/product-collection-no-results' !== $block['blockName'] ) {
+			return $block_content;
 		}
 
-		return $block_content;
+		if ( empty( $this->rules ) || ! $this->has_global_hide_rule() ) {
+			return $block_content;
+		}
+
+		$user = wp_get_current_user();
+
+		if ( ! $user->exists() ) {
+			return wp_kses_post( $this->get_login_message() );
+		}
+
+		return wp_kses_post( $this->get_hidden_for_role_message() );
 	}
 
 	/**
@@ -412,6 +418,10 @@ class Product_Visibility implements ServiceInterface {
 		// Get variation terms.
 		$variation_terms = wp_get_object_terms( $variation->get_id(), 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
 
+		if ( is_wp_error( $variation_terms ) ) {
+			return $variation_data;
+		}
+
 		// If the variation has any term that matches one of the hidden terms — hide it.
 		foreach ( $variation_terms as $term ) {
 			if ( in_array( $term, $hidden_terms, true ) ) {
@@ -459,7 +469,11 @@ class Product_Visibility implements ServiceInterface {
 		// 3️. Product-specific visibility via taxonomy.
 		$hidden_terms = $this->get_hidden_terms_of_custom_taxonomy();
 
-		$tax_query[] = array(
+		if ( ! isset( $args['tax_query'] ) ) {
+			$args['tax_query'] = array();
+		}
+
+		$args['tax_query'][] = array(
 			'taxonomy' => $this->plugin->custom_taxonomy,
 			'field'    => 'slug',
 			'terms'    => $hidden_terms,

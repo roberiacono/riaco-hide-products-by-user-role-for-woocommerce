@@ -1,5 +1,12 @@
 jQuery(document).ready(function ($) {
-  //console.log("riaco_hpburfw_data:", riaco_hpburfw_data);
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
   function renderRow(index, rule) {
     const roles = riaco_hpburfw_data.roles;
@@ -12,14 +19,14 @@ jQuery(document).ready(function ($) {
     let roleOptions = "";
     for (const key in roles) {
       const selected = rule.role === key ? "selected" : "";
-      roleOptions += `<option value="${key}" ${selected}>${roles[key].name}</option>`;
+      roleOptions += `<option value="${escHtml(key)}" ${selected}>${escHtml(roles[key].name)}</option>`;
     }
 
     // Build target <select>
     let targetOptions = "";
     targets.forEach((target) => {
       const selected = rule.target === target.id ? "selected" : "";
-      targetOptions += `<option value="${target.id}" ${selected}>${target.label}</option>`;
+      targetOptions += `<option value="${escHtml(target.id)}" ${selected}>${escHtml(target.label)}</option>`;
     });
 
     const selectedTarget = targets.find((t) => t.id === rule.target);
@@ -41,7 +48,7 @@ jQuery(document).ready(function ($) {
                        name="riaco_hpburfw_rules[${index}][terms][]" 
                        value="${term.term_id}" 
                        ${checked}>
-                ${term.name}
+                ${escHtml(term.name)}
               </label>
               ${
                 hasChildren
@@ -184,13 +191,5 @@ jQuery(document).ready(function ($) {
     }
   );
 
-  $("#riaco-hpburfw-rules tbody").on(
-    "change",
-    'select[name*="[category]"]',
-    function () {
-      const row = $(this).closest("tr");
-      const index = row.index();
-      riaco_hpburfw_data.rules[index].category = $(this).val();
-    }
-  );
 });
+

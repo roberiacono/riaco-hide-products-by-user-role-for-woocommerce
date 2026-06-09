@@ -111,6 +111,7 @@ class Plugin {
 			return;
 		}
 
+		$this->loaded = true;
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
 	}
 

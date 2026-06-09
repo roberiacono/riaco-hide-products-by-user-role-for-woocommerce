@@ -155,6 +155,10 @@ class Settings_Page implements ServiceInterface {
 	 */
 	public function save_custom_settings(): void {
 
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
 		if (
 			! isset( $_POST['riaco_hpburfw_nonce'] ) ||
 			! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_nonce'] ), 'riaco_hpburfw_save_rules' )
