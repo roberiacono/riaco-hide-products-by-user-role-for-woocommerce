@@ -230,6 +230,131 @@ add_action( 'riaco_hpburfw_rules_saved', function( $rules ) {
 } );
 ```
 
+### Filter: `riaco_hpburfw_rule_applies`
+Determines whether a specific rule applies to the current user. Runs in `has_global_hide_rule()` and `get_hidden_target_terms()` — covering all query-level and single-product-page visibility checks. Use this to add extra conditions (date ranges, subscriptions, capabilities) on top of the base role match.
+
+```php
+add_filter( 'riaco_hpburfw_rule_applies', function( $applies, $rule, $user ) {
+    // Example: rule only applies between its start_date and end_date.
+    if ( $applies && ! empty( $rule['start_date'] ) ) {
+        $now = current_time( 'timestamp' );
+        $start = strtotime( $rule['start_date'] );
+        $end   = ! empty( $rule['end_date'] ) ? strtotime( $rule['end_date'] ) : PHP_INT_MAX;
+        return $now >= $start && $now <= $end;
+    }
+    return $applies;
+}, 10, 3 );
+```
+
+### Filter: `riaco_hpburfw_rule_sanitize`
+Runs after each rule's base fields (`order`, `role`, `target`, `terms`) are sanitized on save. Use this to sanitize and persist extra fields submitted by extension plugins; merge them into the returned array.
+
+```php
+add_filter( 'riaco_hpburfw_rule_sanitize', function( $sanitized, $raw ) {
+    $sanitized['start_date'] = ! empty( $raw['start_date'] ) ? sanitize_text_field( $raw['start_date'] ) : '';
+    $sanitized['end_date']   = ! empty( $raw['end_date'] )   ? sanitize_text_field( $raw['end_date'] )   : '';
+    return $sanitized;
+}, 10, 2 );
+```
+
+### Filter: `riaco_hpburfw_localize_data`
+Filters the entire `riaco_hpburfw_data` JS object before it is passed to `wp_localize_script`. Use this to add extension-specific data (labels, config, extra rule-type definitions) that PRO's JS will read.
+
+```php
+add_filter( 'riaco_hpburfw_localize_data', function( $data ) {
+    $data['pro_date_picker_enabled'] = true;
+    return $data;
+} );
+```
+
+### Filter: `riaco_hpburfw_is_product_hidden`
+Overrides the final boolean decision for single product page visibility, after all three built-in checks (global rule, target terms, product-specific taxonomy). Return `false` to force-show; `true` to force-hide.
+
+```php
+add_filter( 'riaco_hpburfw_is_product_hidden', function( $hidden, $product_id, $user ) {
+    // Grant access to users with a specific capability regardless of rules.
+    if ( $user->has_cap( 'pro_member' ) ) {
+        return false;
+    }
+    return $hidden;
+}, 10, 3 );
+```
+
+### Filter: `riaco_hpburfw_is_variation_hidden`
+Overrides the final boolean decision for variation visibility in `woocommerce_available_variation`. Return `false` to force-show; `true` to force-hide.
+
+```php
+add_filter( 'riaco_hpburfw_is_variation_hidden', function( $hidden, $variation_id, $user ) {
+    return $hidden;
+}, 10, 3 );
+```
+
+### Action: `riaco_hpburfw_settings_table_columns`
+Fires inside `<thead><tr>` after the default "Actions" column. Output additional `<th>` cells here to extend the global rules table.
+
+```php
+add_action( 'riaco_hpburfw_settings_table_columns', function() {
+    echo '<th>' . esc_html__( 'Date Range', 'my-pro-plugin' ) . '</th>';
+} );
+```
+
+### Action: `riaco_hpburfw_settings_page_after_table`
+Fires after the rules `<table>` and before the "Add Rule" button. Useful for rendering additional settings sections or explanatory text.
+
+```php
+add_action( 'riaco_hpburfw_settings_page_after_table', function( $plugin ) {
+    // Render a PRO-only settings section here.
+} );
+```
+
+### Action: `riaco_hpburfw_product_tab_after_roles`
+Fires inside the "Hide by Role" product tab, after the role checkboxes. Use this to add extra per-product fields (e.g., per-product date overrides).
+
+```php
+add_action( 'riaco_hpburfw_product_tab_after_roles', function( $post_id, $plugin ) {
+    // Render extra fields for the product.
+}, 10, 2 );
+```
+
+### Action: `riaco_hpburfw_product_tab_saved`
+Fires after the product tab's role taxonomy terms are saved via `wp_set_object_terms`. Use this to persist extra per-product fields submitted in the product tab.
+
+```php
+add_action( 'riaco_hpburfw_product_tab_saved', function( $post_id, $plugin ) {
+    // Save extra product tab fields here.
+}, 10, 2 );
+```
+
+### Action: `riaco_hpburfw_variation_fields_after`
+Fires inside the variation visibility row, after the role checkboxes. Use this to add extra per-variation fields.
+
+```php
+add_action( 'riaco_hpburfw_variation_fields_after', function( $loop, $variation_id, $plugin ) {
+    // Render extra variation fields.
+}, 10, 3 );
+```
+
+### Action: `riaco_hpburfw_variation_saved`
+Fires after a variation's visibility terms are saved. Use this to persist extra per-variation fields.
+
+```php
+add_action( 'riaco_hpburfw_variation_saved', function( $variation_id, $i, $plugin ) {
+    // Save extra variation fields here.
+}, 10, 3 );
+```
+
+---
+
+## Version Constant
+
+`RIACO_HPBURFW_VERSION` is defined in the main plugin file and mirrors `$plugin->version`. Extension plugins can use it for compatibility guards before `riaco_hpburfw_loaded` fires:
+
+```php
+if ( ! defined( 'RIACO_HPBURFW_VERSION' ) || version_compare( RIACO_HPBURFW_VERSION, '1.0.0', '<' ) ) {
+    return; // Required free plugin version not active.
+}
+```
+
 ---
 
 ## Security Conventions
@@ -267,6 +392,19 @@ Key functions: `renderRow(index, rule)`, `refreshTable()`, `addRow()`, `moveUp(i
 **HTML escaping**: The file defines a local `escHtml(s)` helper that must be used whenever inserting any server-supplied string (role names, target labels, term names) into template literals. Never insert these values raw.
 
 The JS manages the dynamic rules table entirely client-side; on form submit the PHP handler sanitizes and persists the state.
+
+**Custom jQuery events** (fired for extension plugins to hook into):
+
+| Event | Triggered on | Data |
+|---|---|---|
+| `riaco_hpburfw:rule_added` | `document` | `{ index, rule }` |
+| `riaco_hpburfw:rule_removed` | `document` | `{ index }` |
+| `riaco_hpburfw:rule_duplicated` | `document` | `{ index }` |
+| `riaco_hpburfw:table_refreshed` | `document` | `{ rules }` |
+| `riaco_hpburfw:row_rendered` | the `<tr>` element | `{ index, rule }` |
+| `riaco_hpburfw:target_changed` | `document` | `{ index, target }` |
+
+`riaco_hpburfw:row_rendered` is the primary hook for injecting per-row extra cells. It fires on the `<tr>` element so extension JS can use `$(tr).append(...)` to add extra `<td>` cells matching any `<th>` columns added via `riaco_hpburfw_settings_table_columns`.
 
 ---
 

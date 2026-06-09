@@ -107,21 +107,26 @@ class Settings_Page implements ServiceInterface {
 		 */
 		$targets = apply_filters( 'riaco_hpburfw_targets', $targets );
 
-		wp_localize_script(
-			'riaco-hpburfw-admin-js',
-			'riaco_hpburfw_data',
-			array(
-				'roles'          => $roles,
-				'targets'        => $targets,
-				'rules'          => ! empty( $rules ) ? $rules : array(),
-				'move_up'        => __( 'Move up', 'riaco-hide-products-by-user-role' ),
-				'move_down'      => __( 'Move down', 'riaco-hide-products-by-user-role' ),
-				'remove_row'     => __( 'Remove', 'riaco-hide-products-by-user-role' ),
-				'duplicate_row'  => __( 'Duplicate', 'riaco-hide-products-by-user-role' ),
-				'confirm_remove' => __( 'Remove this rule?', 'riaco-hide-products-by-user-role' ),
-				'no_rules'       => __( 'No rules yet. Click "Add Rule" to create your first visibility rule.', 'riaco-hide-products-by-user-role' ),
-			)
+		$localize_data = array(
+			'roles'          => $roles,
+			'targets'        => $targets,
+			'rules'          => ! empty( $rules ) ? $rules : array(),
+			'move_up'        => __( 'Move up', 'riaco-hide-products-by-user-role' ),
+			'move_down'      => __( 'Move down', 'riaco-hide-products-by-user-role' ),
+			'remove_row'     => __( 'Remove', 'riaco-hide-products-by-user-role' ),
+			'duplicate_row'  => __( 'Duplicate', 'riaco-hide-products-by-user-role' ),
+			'confirm_remove' => __( 'Remove this rule?', 'riaco-hide-products-by-user-role' ),
+			'no_rules'       => __( 'No rules yet. Click "Add Rule" to create your first visibility rule.', 'riaco-hide-products-by-user-role' ),
 		);
+
+		/**
+		 * Filter the JS localized data object for the rules admin screen.
+		 *
+		 * @param array $localize_data The data array passed to wp_localize_script.
+		 */
+		$localize_data = apply_filters( 'riaco_hpburfw_localize_data', $localize_data );
+
+		wp_localize_script( 'riaco-hpburfw-admin-js', 'riaco_hpburfw_data', $localize_data );
 
 		wp_enqueue_style( 'wp-components' );
 
@@ -213,6 +218,14 @@ class Settings_Page implements ServiceInterface {
 				$sanitized_rule['terms'] = array_map( 'absint', $rule['terms'] );
 			}
 
+			/**
+			 * Filter to sanitize and extend individual rule fields before saving.
+			 *
+			 * @param array $sanitized_rule The sanitized rule (base fields only).
+			 * @param array $rule           The raw submitted rule (may contain extra PRO fields).
+			 */
+			$sanitized_rule = apply_filters( 'riaco_hpburfw_rule_sanitize', $sanitized_rule, $rule );
+
 			$sanitized_rules[] = $sanitized_rule;
 		}
 
@@ -251,11 +264,13 @@ class Settings_Page implements ServiceInterface {
 								<th><?php echo esc_html__( 'Target', 'riaco-hide-products-by-user-role' ); ?></th>
 								<th><?php echo esc_html__( 'Terms', 'riaco-hide-products-by-user-role' ); ?></th>
 								<th><?php echo esc_html__( 'Actions', 'riaco-hide-products-by-user-role' ); ?></th>
+							<?php do_action( 'riaco_hpburfw_settings_table_columns' ); ?>
 							</tr>
 						</thead>
 						<tbody></tbody>
 					</table>
 				</div>
+				<?php do_action( 'riaco_hpburfw_settings_page_after_table', $this->plugin ); ?>
 				<p>
 					<button type="button" class="button" id="add-rule">
 						<?php echo esc_html__( 'Add Rule', 'riaco-hide-products-by-user-role' ); ?>

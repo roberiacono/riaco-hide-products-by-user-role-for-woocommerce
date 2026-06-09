@@ -120,6 +120,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 			}
 			?>
 			</div>
+			<?php do_action( 'riaco_hpburfw_product_tab_after_roles', $post->ID, $this->plugin ); ?>
 			</div>
 		</div>
 		<?php
@@ -156,6 +157,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 		}
 
 		wp_set_object_terms( $post_id, $terms, 'riaco_hpburfw_visibility_role', false );
+		do_action( 'riaco_hpburfw_product_tab_saved', $post_id, $this->plugin );
 	}
 
 
@@ -214,6 +216,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 				);
 			}
 			?>
+			<?php do_action( 'riaco_hpburfw_variation_fields_after', $loop, $variation_id, $this->plugin ); ?>
 			</div>
 		</div>
 		<?php
@@ -267,5 +270,6 @@ class Product_Visibility_Tab implements ServiceInterface {
 		}
 
 		wp_set_object_terms( $variation_id, $new_terms, $taxonomy, false );
+		do_action( 'riaco_hpburfw_variation_saved', $variation_id, $i, $this->plugin );
 	}
 }

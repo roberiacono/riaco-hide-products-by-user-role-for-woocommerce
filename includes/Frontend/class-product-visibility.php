@@ -145,8 +145,11 @@ class Product_Visibility implements ServiceInterface {
 	 * Check if there is a global hide rule for all products for current user roles.
 	 */
 	private function has_global_hide_rule(): bool {
+		$user = wp_get_current_user();
 		foreach ( $this->rules as $rule ) {
-			if ( in_array( $rule['role'], $this->user_roles, true ) && 'all_products' === $rule['target'] ) {
+			$role_matches = in_array( $rule['role'], $this->user_roles, true );
+			$applies      = apply_filters( 'riaco_hpburfw_rule_applies', $role_matches, $rule, $user );
+			if ( $applies && 'all_products' === $rule['target'] ) {
 				return true;
 			}
 		}
@@ -179,7 +182,9 @@ class Product_Visibility implements ServiceInterface {
 			}
 
 			// Only include rules that match current user roles.
-			if ( ! in_array( $rule['role'], $this->user_roles, true ) ) {
+			$role_matches = in_array( $rule['role'], $this->user_roles, true );
+			$applies      = apply_filters( 'riaco_hpburfw_rule_applies', $role_matches, $rule, wp_get_current_user() );
+			if ( ! $applies ) {
 				continue;
 			}
 
@@ -321,22 +326,15 @@ class Product_Visibility implements ServiceInterface {
 		}
 
 		$user       = wp_get_current_user();
-		$user_roles = $this->user_roles;
-
 		$product_id = $post->ID;
 
-		// 1️. Global rule for all products
-		if ( $this->has_global_hide_rule() ) {
-			$this->redirect_blocked_user( $user, $product_id );
-		}
+		$should_hide = $this->has_global_hide_rule()
+			|| $this->has_global_target_terms_hide_rule( $product_id )
+			|| $this->has_product_specific_hide_rule( $product_id );
 
-		// 2. hide based on target terms (e.g., categories)
-		if ( $this->has_global_target_terms_hide_rule( $product_id ) ) {
-			$this->redirect_blocked_user( $user, $product_id );
-		}
+		$should_hide = apply_filters( 'riaco_hpburfw_is_product_hidden', $should_hide, $product_id, $user );
 
-		// 3. Product-specific visibility (taxonomy: riaco_hpburfw_visibility_role)
-		if ( $this->has_product_specific_hide_rule( $product_id ) ) {
+		if ( $should_hide ) {
 			$this->redirect_blocked_user( $user, $product_id );
 		}
 	}
@@ -437,14 +435,17 @@ class Product_Visibility implements ServiceInterface {
 			return $variation_data;
 		}
 
-		// If the variation has any term that matches one of the hidden terms — hide it.
+		$should_hide = false;
 		foreach ( $variation_terms as $term ) {
 			if ( in_array( $term, $hidden_terms, true ) ) {
-				return false; // This removes the variation entirely from the list.
+				$should_hide = true;
+				break;
 			}
 		}
 
-		return $variation_data;
+		$should_hide = apply_filters( 'riaco_hpburfw_is_variation_hidden', $should_hide, $variation->get_id(), $user );
+
+		return $should_hide ? false : $variation_data;
 	}
 
 	/**

@@ -122,11 +122,15 @@ jQuery(document).ready(function ($) {
       tbody.append(
         `<tr class="riaco-no-rules"><td colspan="5">${escHtml(riaco_hpburfw_data.no_rules)}</td></tr>`
       );
+      $(document).trigger('riaco_hpburfw:table_refreshed', { rules: riaco_hpburfw_data.rules });
       return;
     }
     riaco_hpburfw_data.rules.forEach((rule, index) => {
-      tbody.append(renderRow(index, rule));
+      const $row = $(renderRow(index, rule));
+      tbody.append($row);
+      $row.trigger('riaco_hpburfw:row_rendered', { index: index, rule: rule });
     });
+    $(document).trigger('riaco_hpburfw:table_refreshed', { rules: riaco_hpburfw_data.rules });
   }
 
   function addRow() {
@@ -135,7 +139,9 @@ jQuery(document).ready(function ($) {
       target: "all_products",
       terms: [],
     });
+    const newIndex = riaco_hpburfw_data.rules.length - 1;
     refreshTable();
+    $(document).trigger('riaco_hpburfw:rule_added', { index: newIndex, rule: riaco_hpburfw_data.rules[newIndex] });
   }
 
   function moveUp(index) {
@@ -156,12 +162,14 @@ jQuery(document).ready(function ($) {
     const copy = JSON.parse(JSON.stringify(riaco_hpburfw_data.rules[index]));
     riaco_hpburfw_data.rules.splice(index + 1, 0, copy);
     refreshTable();
+    $(document).trigger('riaco_hpburfw:rule_duplicated', { index: index + 1 });
   }
 
   function removeRow(index) {
     if (!window.confirm(riaco_hpburfw_data.confirm_remove)) return;
     riaco_hpburfw_data.rules.splice(index, 1);
     refreshTable();
+    $(document).trigger('riaco_hpburfw:rule_removed', { index: index });
   }
 
   // Initial render
@@ -194,8 +202,10 @@ jQuery(document).ready(function ($) {
   $("#riaco-hpburfw-rules tbody").on("change", ".target-select", function () {
     const row = $(this).closest("tr");
     const index = row.index();
-    riaco_hpburfw_data.rules[index].target = $(this).val();
+    const target = $(this).val();
+    riaco_hpburfw_data.rules[index].target = target;
     refreshTable();
+    $(document).trigger('riaco_hpburfw:target_changed', { index: index, target: target });
   });
 
   $("#riaco-hpburfw-rules tbody").on(

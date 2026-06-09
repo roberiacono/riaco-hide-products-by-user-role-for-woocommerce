@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+define( 'RIACO_HPBURFW_VERSION', '1.0.0' );
+
 use Riaco\HideProducts\Autoloader;
 use Riaco\HideProducts\Plugin;
 
