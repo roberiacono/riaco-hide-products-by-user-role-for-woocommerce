@@ -38,12 +38,29 @@ class Product_Visibility_Tab implements ServiceInterface {
 	 * Register hooks
 	 */
 	public function register(): void {
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_filter( 'woocommerce_product_data_tabs', array( $this, 'add_tab' ) );
 		add_action( 'woocommerce_product_data_panels', array( $this, 'render_tab_content' ) );
 		add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_meta' ) );
 
 		add_action( 'woocommerce_product_after_variable_attributes', array( $this, 'add_variation_visibility_fields' ), 15, 3 );
 		add_action( 'woocommerce_save_product_variation', array( $this, 'save_variation_visibility_fields' ), 15, 2 );
+	}
+
+	/**
+	 * Enqueue admin styles on the product edit screen.
+	 */
+	public function enqueue_scripts(): void {
+		$screen = get_current_screen();
+		if ( ! $screen || 'product' !== $screen->id ) {
+			return;
+		}
+		wp_enqueue_style(
+			'riaco-hpburfw-admin-css',
+			plugins_url( 'assets/admin/style.css', $this->plugin->file ),
+			array(),
+			$this->plugin->version
+		);
 	}
 
 	/**
@@ -77,6 +94,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 			</div>
 
 			<div class="option_group">
+			<div class="riaco-hpburfw-role-rows">
 			<?php
 
 			// Get all roles.
@@ -101,6 +119,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 				);
 			}
 			?>
+			</div>
 			</div>
 		</div>
 		<?php
@@ -182,6 +201,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 		?>
 		<div class="form-row form-row-full">
 			<h4><?php echo esc_html__( 'Hide this variation for:', 'riaco-hide-products-by-user-role' ); ?></h4>
+			<div class="riaco-hpburfw-role-rows">
 			<?php
 			foreach ( $terms as $term ) {
 				$field_id = 'riaco_hpburfw_term_' . esc_attr( $term->slug ) . "_{$loop}";
@@ -194,6 +214,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 				);
 			}
 			?>
+			</div>
 		</div>
 		<?php
 		static $nonce_printed = false;
