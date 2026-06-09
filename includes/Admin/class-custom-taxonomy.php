@@ -98,21 +98,28 @@ class Custom_Taxonomy implements ServiceInterface {
 			return;
 		}
 
+		$all_created = true;
 		foreach ( $roles as $role_key => $role_data ) {
 			$term_slug = 'hide-for-' . sanitize_title( $role_key );
 			$term_name = $role_data['name'];
 
 			if ( ! term_exists( $term_slug, $taxonomy ) ) {
-				wp_insert_term(
+				$result = wp_insert_term(
 					$term_name,
 					$taxonomy,
 					array(
 						'slug' => $term_slug,
 					)
 				);
+				if ( is_wp_error( $result ) ) {
+					$all_created = false;
+				}
 			}
 		}
 
-		set_transient( $cache_key, 1, WEEK_IN_SECONDS );
+		// Only cache success so a failed insertion is retried on the next request.
+		if ( $all_created ) {
+			set_transient( $cache_key, 1, WEEK_IN_SECONDS );
+		}
 	}
 }

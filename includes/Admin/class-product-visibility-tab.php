@@ -156,7 +156,11 @@ class Product_Visibility_Tab implements ServiceInterface {
 			}
 		}
 
-		wp_set_object_terms( $post_id, $terms, 'riaco_hpburfw_visibility_role', false );
+		$result = wp_set_object_terms( $post_id, $terms, $this->plugin->custom_taxonomy, false );
+		if ( is_wp_error( $result ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( 'riaco_hpburfw: failed to set visibility terms for product %d: %s', $post_id, $result->get_error_message() ) );
+		}
 		do_action( 'riaco_hpburfw_product_tab_saved', $post_id, $this->plugin );
 	}
 
@@ -268,7 +272,11 @@ class Product_Visibility_Tab implements ServiceInterface {
 			}
 		}
 
-		wp_set_object_terms( $variation_id, $new_terms, $taxonomy, false );
+		$result = wp_set_object_terms( $variation_id, $new_terms, $taxonomy, false );
+		if ( is_wp_error( $result ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( 'riaco_hpburfw: failed to set visibility terms for variation %d: %s', $variation_id, $result->get_error_message() ) );
+		}
 		do_action( 'riaco_hpburfw_variation_saved', $variation_id, $i, $this->plugin );
 	}
 }

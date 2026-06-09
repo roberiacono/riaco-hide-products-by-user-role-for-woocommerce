@@ -109,11 +109,26 @@ Default terms are created for all registered roles plus `guest` on plugin activa
 
 ## Three-Level Filtering (Priority Order)
 
-Applied in `Frontend\Product_Visibility::apply_visibility_query()`:
+The single source of truth is `Frontend\Product_Visibility::build_visibility_conditions()`, which returns one of:
+
+- `[]` — no rules apply; callers skip modification.
+- `['post__in' => [0]]` — global hide rule matched; all products hidden.
+- `['tax_query' => ['relation' => 'AND', ...]]` — tax_query conditions for levels 2 & 3.
+
+Two callers consume the result:
+
+- `apply_visibility_query(\WP_Query)` — used by `woocommerce_product_query` and `pre_get_posts`.
+- `apply_hide_rules_to_args(array)` — used by `rest_product_query` and FiboSearch.
+
+Both merge the returned `tax_query` group in a nested AND so that any pre-existing `'relation' => 'OR'` set by another plugin is not broken.
+
+The three levels themselves:
 
 1. **Global hide** — if a rule exists for the user's role with `target = 'all_products'`, hide all products and return early.
-2. **Target-based hiding** — if rules exist for the user's role targeting a taxonomy (e.g., `product_cat`), add a `NOT IN` `tax_query` to exclude products in those terms.
-3. **Product-specific hiding** — add a `NOT IN` `tax_query` on `riaco_hpburfw_visibility_role` to exclude products with the matching `hide-for-{role}` term assigned.
+2. **Target-based hiding** — if rules exist for the user's role targeting a taxonomy (e.g., `product_cat`), add a `NOT IN` condition for those term IDs.
+3. **Product-specific hiding** — add a `NOT IN` condition on `riaco_hpburfw_visibility_role` to exclude products with the matching `hide-for-{role}` term assigned.
+
+`maybe_hide_variation()` also applies levels 1 and 2 before checking variation-specific terms.
 
 ---
 
@@ -202,7 +217,7 @@ add_filter( 'riaco_hpburfw_user_roles', function( $roles, $user ) {
 ```
 
 ### Filter: `riaco_hpburfw_redirect_url`
-Customize the URL blocked users are redirected to when they try to access a hidden single product page.
+Customize the URL blocked users are redirected to when they try to access a hidden single product page. External URLs are supported — the plugin uses `wp_redirect()`, not `wp_safe_redirect()`.
 
 ```php
 add_filter( 'riaco_hpburfw_redirect_url', function( $url, $product_id, $user ) {
@@ -369,6 +384,7 @@ Always follow these patterns when adding features:
   - Note: product tab and variation use **different field names** to avoid collision
 - **Output escaping**: `esc_html__()`, `esc_url()`, `esc_attr()` — never output raw data
 - **Input sanitization**: `sanitize_text_field()`, `sanitize_key()`, `absint()` — never trust raw input
+- **`$_POST` vs `filter_input`**: Use `wp_unslash( $_POST['key'] )` — do **not** use `filter_input(INPUT_POST, ...)`. On some PHP-FPM + Nginx stacks `INPUT_POST` is not populated after WordPress initialises, causing `filter_input` to return `null` even when `$_POST` has data.
 
 ---
 

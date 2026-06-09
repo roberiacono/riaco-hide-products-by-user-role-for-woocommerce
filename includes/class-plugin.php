@@ -142,8 +142,8 @@ class Plugin {
 		$review_url = 'https://wordpress.org/support/plugin/riaco-hide-products-by-user-role/reviews/';
 
 		return sprintf(
-			/* translators: %1$s: plugin name, %2$s: review URL */
 			wp_kses(
+				/* translators: %1$s: plugin name, %2$s: review URL */
 				__( 'If you like %1$s please leave us a <a href="%2$s" target="_blank" rel="noopener noreferrer">★★★★★</a> rating. A huge thanks in advance!', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 				array(
 					'a' => array(

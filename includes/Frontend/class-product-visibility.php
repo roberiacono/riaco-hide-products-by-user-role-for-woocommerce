@@ -35,6 +35,13 @@ class Product_Visibility implements ServiceInterface {
 	private $plugin;
 
 	/**
+	 * Per-request cache for has_global_hide_rule() result.
+	 *
+	 * @var bool|null
+	 */
+	private $global_hide_cache = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Plugin $plugin Main plugin instance.
@@ -98,7 +105,17 @@ class Product_Visibility implements ServiceInterface {
 
 		$rules = apply_filters( 'riaco_hpburfw_visibility_rules', $rules );
 
-		usort( $rules, fn( $a, $b ) => ( $a['order'] ?? 0 ) <=> ( $b['order'] ?? 0 ) );
+		// Stable sort: preserve original insertion order when 'order' values are equal (PHP 7.4 compat).
+		$keyed = array();
+		$idx   = 0;
+		foreach ( $rules as $rule ) {
+			$keyed[] = array( 'rule' => $rule, 'idx' => $idx++ );
+		}
+		usort(
+			$keyed,
+			fn( $a, $b ) => ( $a['rule']['order'] ?? 0 ) <=> ( $b['rule']['order'] ?? 0 ) ?: $a['idx'] <=> $b['idx']
+		);
+		$rules = array_column( $keyed, 'rule' );
 
 		wp_cache_set( 'riaco_hpburfw_rules', $rules, 'riaco_hpburfw', HOUR_IN_SECONDS );
 
@@ -106,56 +123,105 @@ class Product_Visibility implements ServiceInterface {
 	}
 
 	/**
-	 * Apply visibility rules to a WP_Query instance.
+	 * Build a unified set of visibility conditions for query filtering.
+	 *
+	 * Returns an empty array when no rules apply, ['post__in' => [0]] when all
+	 * products should be hidden, or ['tax_query' => ['relation' => 'AND', ...]]
+	 * otherwise. Callers are responsible for merging into the query correctly.
+	 *
+	 * @return array
+	 */
+	private function build_visibility_conditions(): array {
+		if ( empty( $this->rules ) ) {
+			return array();
+		}
+
+		// Level 1: Global hide rule — no products at all.
+		if ( $this->has_global_hide_rule() ) {
+			return array( 'post__in' => array( 0 ) );
+		}
+
+		$tax_conditions = array( 'relation' => 'AND' );
+
+		// Level 2: Category/tag-specific hide rules.
+		foreach ( $this->get_hidden_target_terms() as $target => $term_ids ) {
+			$tax_conditions[] = array(
+				'taxonomy'         => $target,
+				'field'            => 'term_id',
+				'terms'            => $term_ids,
+				'operator'         => 'NOT IN',
+				'include_children' => true,
+			);
+		}
+
+		// Level 3: Product-specific visibility via custom taxonomy.
+		$tax_conditions[] = array(
+			'taxonomy' => $this->plugin->custom_taxonomy,
+			'field'    => 'slug',
+			'terms'    => $this->get_hidden_terms_of_custom_taxonomy(),
+			'operator' => 'NOT IN',
+		);
+
+		return array( 'tax_query' => $tax_conditions );
+	}
+
+	/**
+	 * Merge visibility conditions into a WP_Query instance.
+	 *
+	 * Wraps existing tax_query conditions in a nested AND group so that any
+	 * pre-existing 'relation' key (e.g. set to 'OR' by another plugin) is
+	 * preserved and our NOT IN conditions are always ANDed, never ORed.
 	 *
 	 * @param \WP_Query $query The WP_Query instance to modify.
 	 */
 	private function apply_visibility_query( \WP_Query $query ): void {
-
-		if ( empty( $this->rules ) ) {
+		$conditions = $this->build_visibility_conditions();
+		if ( empty( $conditions ) ) {
 			return;
 		}
 
-		// 1️. Global rule for all products.
-		if ( $this->has_global_hide_rule() ) {
-			$this->hide_all_products( $query );
+		if ( isset( $conditions['post__in'] ) ) {
+			$query->set( 'post__in', $conditions['post__in'] );
 			return;
 		}
 
-		// 2️. Category-specific hide.
-		$target_terms = $this->get_hidden_target_terms();
-
-		if ( ! empty( $target_terms ) ) {
-			$this->exclude_target_terms( $query, $target_terms );
+		$existing = $query->get( 'tax_query' );
+		if ( is_array( $existing ) && ! empty( $existing ) ) {
+			$query->set(
+				'tax_query',
+				array(
+					'relation' => 'AND',
+					$existing,
+					$conditions['tax_query'],
+				)
+			);
+		} else {
+			$query->set( 'tax_query', $conditions['tax_query'] );
 		}
-
-		// 3️. Product-specific visibility via taxonomy.
-		$this->exclude_by_custom_taxonomy( $query );
 	}
 
 	/**
-	 * Check if there is a global hide rule for all products for current user roles.
+	 * Check if there is a global hide rule for all products for the current user.
+	 * Result is cached for the duration of the request.
 	 */
 	private function has_global_hide_rule(): bool {
+		if ( null !== $this->global_hide_cache ) {
+			return $this->global_hide_cache;
+		}
+
 		$user       = wp_get_current_user();
 		$user_roles = $this->get_current_user_roles();
 		foreach ( $this->rules as $rule ) {
 			$role_matches = in_array( $rule['role'], $user_roles, true );
 			$applies      = apply_filters( 'riaco_hpburfw_rule_applies', $role_matches, $rule, $user );
 			if ( $applies && 'all_products' === $rule['target'] ) {
+				$this->global_hide_cache = true;
 				return true;
 			}
 		}
-		return false;
-	}
 
-	/**
-	 * Hide all products in the query.
-	 *
-	 * @param \WP_Query $query The WP_Query instance to modify.
-	 */
-	private function hide_all_products( \WP_Query $query ): void {
-		$query->set( 'post__in', array( 0 ) ); // no results.
+		$this->global_hide_cache = false;
+		return false;
 	}
 
 	/**
@@ -195,36 +261,12 @@ class Product_Visibility implements ServiceInterface {
 			);
 		}
 
-		// Make term IDs unique for each target.
+		// Make term IDs unique per target.
 		foreach ( $terms as $target => $term_ids ) {
 			$terms[ $target ] = array_values( array_unique( $term_ids ) );
 		}
 
 		return $terms;
-	}
-
-	/**
-	 * Exclude products with specified target terms from the query.
-	 *
-	 * @param \WP_Query $query The WP_Query instance to modify.
-	 * @param array     $target_terms Array of target taxonomies and their term IDs to exclude.
-	 */
-	private function exclude_target_terms( \WP_Query $query, array $target_terms ): void {
-
-		$tax_query = (array) $query->get( 'tax_query' );
-
-		// Make term IDs unique for each target.
-		foreach ( $target_terms as $target => $term_ids ) {
-
-			$tax_query[] = array(
-				'taxonomy'         => $target,
-				'field'            => 'term_id',
-				'terms'            => array_values( array_unique( $term_ids ) ),
-				'operator'         => 'NOT IN',
-				'include_children' => true,
-			);
-		}
-		$query->set( 'tax_query', $tax_query );
 	}
 
 	/**
@@ -242,25 +284,7 @@ class Product_Visibility implements ServiceInterface {
 	}
 
 	/**
-	 * Exclude products by custom taxonomy terms from the query.
-	 *
-	 * @param \WP_Query $query The WP_Query instance to modify.
-	 */
-	private function exclude_by_custom_taxonomy( \WP_Query $query ): void {
-		$hidden_terms = $this->get_hidden_terms_of_custom_taxonomy();
-
-		$tax_query   = (array) $query->get( 'tax_query' );
-		$tax_query[] = array(
-			'taxonomy' => $this->plugin->custom_taxonomy,
-			'field'    => 'slug',
-			'terms'    => $hidden_terms,
-			'operator' => 'NOT IN',
-		);
-		$query->set( 'tax_query', $tax_query );
-	}
-
-	/**
-	 * Hide products in shop, category, and tag archives
+	 * Hide products in shop, category, and tag archives (search only via pre_get_posts).
 	 *
 	 * @param \WP_Query $query The WP_Query instance to modify.
 	 */
@@ -270,18 +294,18 @@ class Product_Visibility implements ServiceInterface {
 			return;
 		}
 
-		$is_product_search = $query->is_search();
-
-		if ( ! $is_product_search ) {
+		if ( ! $query->is_search() ) {
 			return;
 		}
 
 		$this->apply_visibility_query( $query );
 	}
 
-
 	/**
-	 * Replace "No products found" block content (for block themes)
+	 * Replace "No products found" block content (for block themes).
+	 *
+	 * has_global_hide_rule() result is cached so this is cheap on pages with
+	 * multiple product collection blocks.
 	 *
 	 * @param string $block_content The original block content.
 	 * @param array  $block The block data.
@@ -338,18 +362,21 @@ class Product_Visibility implements ServiceInterface {
 	/**
 	 * Redirect blocked user to login or shop page.
 	 *
+	 * Uses wp_redirect() (not wp_safe_redirect()) so that external URLs
+	 * returned by the riaco_hpburfw_redirect_url filter work correctly.
+	 *
 	 * @param \WP_User $user Current user object.
-	 *  @param int      $product_id Current product ID.
+	 * @param int      $product_id Current product ID.
 	 */
 	private function redirect_blocked_user( \WP_User $user, int $product_id ): void {
 		if ( ! $user->exists() ) {
 			$url = apply_filters( 'riaco_hpburfw_redirect_url', wp_login_url( get_permalink( $product_id ) ), $product_id, $user );
-			wp_safe_redirect( $url );
+			wp_redirect( esc_url_raw( $url ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 			exit;
 		}
 
 		$url = apply_filters( 'riaco_hpburfw_redirect_url', wc_get_page_permalink( 'shop' ), $product_id, $user );
-		wp_safe_redirect( $url );
+		wp_redirect( esc_url_raw( $url ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 		exit;
 	}
 
@@ -378,7 +405,7 @@ class Product_Visibility implements ServiceInterface {
 	}
 
 	/**
-	 * Check if product has global target terms hide rule.
+	 * Check if product belongs to a category/tag covered by a hide rule.
 	 *
 	 * @param int $product_id Product ID.
 	 */
@@ -386,7 +413,6 @@ class Product_Visibility implements ServiceInterface {
 		$hidden_target_terms = $this->get_hidden_target_terms();
 
 		if ( ! empty( $hidden_target_terms ) ) {
-			// If product has any of these terms, hide it.
 			foreach ( $hidden_target_terms as $key => $terms ) {
 				if ( has_term( $terms, $key, $product_id ) ) {
 					return true;
@@ -399,7 +425,7 @@ class Product_Visibility implements ServiceInterface {
 	/**
 	 * Filter WooCommerce product query.
 	 *
-	 * @param \WC_Product_Query $query The WooCommerce product query.
+	 * @param \WP_Query $query The WooCommerce product query (WP_Query instance).
 	 */
 	public function filter_wc_product_query( $query ): void {
 		$this->apply_visibility_query( $query );
@@ -408,6 +434,9 @@ class Product_Visibility implements ServiceInterface {
 	/**
 	 * Maybe hide a product variation based on visibility rules.
 	 *
+	 * Checks global and category-level rules first, then variation-specific terms.
+	 * User roles are read inline (not from constructor) so REST API auth is respected.
+	 *
 	 * @param array|false           $variation_data Variation data or false to hide.
 	 * @param \WC_Product           $product Parent product.
 	 * @param \WC_Product_Variation $variation Variation product.
@@ -415,6 +444,13 @@ class Product_Visibility implements ServiceInterface {
 	public function maybe_hide_variation( $variation_data, $product, $variation ) {
 		if ( ! $variation_data ) {
 			return $variation_data;
+		}
+
+		// Respect global and category-level hide rules, not just per-variation taxonomy.
+		if ( ! empty( $this->rules ) ) {
+			if ( $this->has_global_hide_rule() || $this->has_global_target_terms_hide_rule( $product->get_id() ) ) {
+				return false;
+			}
 		}
 
 		$user       = wp_get_current_user();
@@ -445,58 +481,40 @@ class Product_Visibility implements ServiceInterface {
 	}
 
 	/**
-	 * Apply hide rules to WP_Query args array.
+	 * Apply hide rules to a WP_Query args array (REST API and search integrations).
+	 *
+	 * Merges our AND-grouped tax_query conditions with any existing ones so that
+	 * a pre-existing 'relation' => 'OR' set by another plugin is not broken.
 	 *
 	 * @param array $args WP_Query args.
 	 */
 	public function apply_hide_rules_to_args( $args ) {
-
-		if ( empty( $this->rules ) ) {
+		$conditions = $this->build_visibility_conditions();
+		if ( empty( $conditions ) ) {
 			return $args;
 		}
 
-		// 1️. Global rule for all products
-		if ( $this->has_global_hide_rule() ) {
-			$args['post__in'] = array( 0 );
+		if ( isset( $conditions['post__in'] ) ) {
+			$args['post__in'] = $conditions['post__in'];
 			return $args;
 		}
 
-		// 2️. Category-specific hide
-		$target_terms = $this->get_hidden_target_terms();
-
-		if ( ! empty( $target_terms ) ) {
-
-			// Make term IDs unique for each target.
-			foreach ( $target_terms as $target => $term_ids ) {
-				$args['tax_query'][] = array(
-					'taxonomy'         => $target,
-					'field'            => 'term_id',
-					'terms'            => array_values( array_unique( $term_ids ) ),
-					'operator'         => 'NOT IN',
-					'include_children' => true,
-				);
-			}
+		$existing = isset( $args['tax_query'] ) && is_array( $args['tax_query'] ) ? $args['tax_query'] : array();
+		if ( ! empty( $existing ) ) {
+			$args['tax_query'] = array(
+				'relation' => 'AND',
+				$existing,
+				$conditions['tax_query'],
+			);
+		} else {
+			$args['tax_query'] = $conditions['tax_query']; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 		}
-
-		// 3️. Product-specific visibility via taxonomy.
-		$hidden_terms = $this->get_hidden_terms_of_custom_taxonomy();
-
-		if ( ! isset( $args['tax_query'] ) ) {
-			$args['tax_query'] = array(); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
-		}
-
-		$args['tax_query'][] = array(
-			'taxonomy' => $this->plugin->custom_taxonomy,
-			'field'    => 'slug',
-			'terms'    => $hidden_terms,
-			'operator' => 'NOT IN',
-		);
 
 		return $args;
 	}
 
 	/**
-	 * FiboSearch compatibility
+	 * FiboSearch compatibility.
 	 *
 	 * @param array $args WP_Query args.
 	 */
@@ -507,10 +525,16 @@ class Product_Visibility implements ServiceInterface {
 	/**
 	 * Maybe hide products in REST API based on visibility rules.
 	 *
-	 * @param array            $args WP_Query args.
+	 * Skips filtering for block editor requests (context=edit) to avoid hiding
+	 * products from the product picker when an admin role has a hide rule.
+	 *
+	 * @param array            $args    WP_Query args.
 	 * @param \WP_REST_Request $request The REST API request.
 	 */
 	public function maybe_hide_product_in_rest_api( $args, $request ) {
+		if ( $request instanceof \WP_REST_Request && 'edit' === $request->get_param( 'context' ) ) {
+			return $args;
+		}
 		return $this->apply_hide_rules_to_args( $args );
 	}
 
@@ -518,7 +542,7 @@ class Product_Visibility implements ServiceInterface {
 	 * Get login message HTML.
 	 */
 	public function get_login_message(): string {
-		$login_url    = wp_login_url( get_permalink() ); // Redirect back to this product after login.
+		$login_url    = wp_login_url( get_permalink() );
 		$register_url = '';
 
 		if ( get_option( 'users_can_register' ) ) {
@@ -545,15 +569,12 @@ class Product_Visibility implements ServiceInterface {
 	 * Get hidden for role message HTML.
 	 */
 	public function get_hidden_for_role_message(): string {
-		$logout_url = wp_logout_url( wc_get_page_permalink( 'shop' ) ); // Redirect to shop after logout.
-		$shop_url   = wc_get_page_permalink( 'shop' );
+		$logout_url = wp_logout_url( wc_get_page_permalink( 'shop' ) );
 
 		$message  = '<div class="woocommerce-info">';
 		$message .= esc_html__( 'Products are hidden for your user role.', 'riaco-hide-products-by-user-role-for-woocommerce' ) . ' ';
-
 		$message .= '<a href="' . esc_url( $logout_url ) . '" class="woocommerce-button logout-link">';
 		$message .= esc_html__( 'Log out', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</a>.';
-
 		$message .= '</div>';
 
 		return $message;

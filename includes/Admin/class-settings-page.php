@@ -187,8 +187,8 @@ class Settings_Page implements ServiceInterface {
 		}
 
 		if ( ! isset( $_POST['riaco_hpburfw_rules'] ) ) {
-			update_option( 'riaco_hpburfw_rules', array() );
-			wp_cache_delete( 'riaco_hpburfw_rules', 'riaco_hpburfw' );
+			wp_cache_delete( $this->plugin->option_key, 'riaco_hpburfw' );
+			update_option( $this->plugin->option_key, array() );
 			\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
 			return;
 		}
@@ -199,11 +199,8 @@ class Settings_Page implements ServiceInterface {
 
 		$sanitized_rules = array();
 
-		$raw_rules = filter_input( INPUT_POST, 'riaco_hpburfw_rules', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
-
-		if ( ! is_array( $raw_rules ) ) {
-			return;
-		}
+		// Use $_POST directly: filter_input(INPUT_POST) is unreliable on some PHP-FPM stacks.
+		$raw_rules = wp_unslash( $_POST['riaco_hpburfw_rules'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		foreach ( $raw_rules as $rule ) {
 			if ( ! is_array( $rule ) ) {
@@ -233,8 +230,8 @@ class Settings_Page implements ServiceInterface {
 			$sanitized_rules[] = $sanitized_rule;
 		}
 
-		update_option( 'riaco_hpburfw_rules', $sanitized_rules );
-		wp_cache_delete( 'riaco_hpburfw_rules', 'riaco_hpburfw' );
+		wp_cache_delete( $this->plugin->option_key, 'riaco_hpburfw' );
+		update_option( $this->plugin->option_key, $sanitized_rules );
 		\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
 		do_action( 'riaco_hpburfw_rules_saved', $sanitized_rules );
 	}
