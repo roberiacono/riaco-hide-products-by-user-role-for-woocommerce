@@ -108,9 +108,8 @@ jQuery(document).ready(function ($) {
         </td>
   
         <td>
-          <button type="button" class="button button-link remove-row">${
-            riaco_hpburfw_data.remove_row
-          }</button>
+          <button type="button" class="button button-link duplicate-row">${escHtml(riaco_hpburfw_data.duplicate_row)}</button>
+          <button type="button" class="button button-link remove-row">${escHtml(riaco_hpburfw_data.remove_row)}</button>
         </td>
       </tr>
     `;
@@ -119,6 +118,12 @@ jQuery(document).ready(function ($) {
   function refreshTable() {
     const tbody = $("#riaco-hpburfw-rules tbody");
     tbody.empty();
+    if (riaco_hpburfw_data.rules.length === 0) {
+      tbody.append(
+        `<tr class="riaco-no-rules"><td colspan="5">${escHtml(riaco_hpburfw_data.no_rules)}</td></tr>`
+      );
+      return;
+    }
     riaco_hpburfw_data.rules.forEach((rule, index) => {
       tbody.append(renderRow(index, rule));
     });
@@ -126,9 +131,9 @@ jQuery(document).ready(function ($) {
 
   function addRow() {
     riaco_hpburfw_data.rules.push({
-      role: "",
+      role: Object.keys(riaco_hpburfw_data.roles)[0] || "",
       target: "all_products",
-      category: "",
+      terms: [],
     });
     refreshTable();
   }
@@ -147,7 +152,14 @@ jQuery(document).ready(function ($) {
     refreshTable();
   }
 
+  function duplicateRow(index) {
+    const copy = JSON.parse(JSON.stringify(riaco_hpburfw_data.rules[index]));
+    riaco_hpburfw_data.rules.splice(index + 1, 0, copy);
+    refreshTable();
+  }
+
   function removeRow(index) {
+    if (!window.confirm(riaco_hpburfw_data.confirm_remove)) return;
     riaco_hpburfw_data.rules.splice(index, 1);
     refreshTable();
   }
@@ -167,6 +179,11 @@ jQuery(document).ready(function ($) {
   $("#riaco-hpburfw-rules tbody").on("click", ".move-down", function () {
     const index = $(this).closest("tr").index();
     moveDown(index);
+  });
+
+  $("#riaco-hpburfw-rules tbody").on("click", ".duplicate-row", function () {
+    const index = $(this).closest("tr").index();
+    duplicateRow(index);
   });
 
   $("#riaco-hpburfw-rules tbody").on("click", ".remove-row", function () {

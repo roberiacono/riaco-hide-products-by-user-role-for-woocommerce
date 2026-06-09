@@ -113,6 +113,7 @@ class Plugin {
 
 		$this->loaded = true;
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
+		add_action( 'before_woocommerce_init', array( $this, 'declare_hpos_compatibility' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( $this->file ), array( $this, 'add_action_links' ) );
 
 		if ( is_admin() ) {
@@ -171,6 +172,15 @@ class Plugin {
 	}
 
 	/**
+	 * Declares HPOS compatibility with WooCommerce.
+	 */
+	public function declare_hpos_compatibility(): void {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', $this->file, true );
+		}
+	}
+
+	/**
 	 * Initializes the plugin.
 	 *
 	 * @since 1.0.0
@@ -191,6 +201,19 @@ class Plugin {
 				$service->register();
 			}
 		}
+	}
+
+	/**
+	 * Register and immediately activate an additional service.
+	 *
+	 * PRO and extension plugins can call this from the `riaco_hpburfw_loaded` hook
+	 * to inject new services after the core plugin has initialised.
+	 *
+	 * @param ServiceInterface $service The service to register.
+	 */
+	public function register_service( ServiceInterface $service ): void {
+		$this->services[] = $service;
+		$service->register();
 	}
 
 	/**

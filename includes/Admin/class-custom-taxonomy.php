@@ -78,6 +78,8 @@ class Custom_Taxonomy implements ServiceInterface {
 	}
 	/**
 	 * Create default terms for all user roles (including guest).
+	 *
+	 * Gated by a transient keyed on the role set hash to avoid per-request DB queries.
 	 */
 	public function maybe_create_default_terms(): void {
 		$taxonomy = $this->plugin->custom_taxonomy;
@@ -87,8 +89,13 @@ class Custom_Taxonomy implements ServiceInterface {
 			return;
 		}
 
-		// Get all WordPress roles.
-		$roles = $this->plugin->get_roles();
+		$roles     = $this->plugin->get_roles();
+		$roles_hash = md5( implode( ',', array_keys( $roles ) ) . $this->plugin->version );
+		$cache_key  = 'riaco_hpburfw_default_terms_' . $roles_hash;
+
+		if ( get_transient( $cache_key ) ) {
+			return;
+		}
 
 		foreach ( $roles as $role_key => $role_data ) {
 			$term_slug = 'hide-for-' . sanitize_title( $role_key );
@@ -104,5 +111,7 @@ class Custom_Taxonomy implements ServiceInterface {
 				);
 			}
 		}
+
+		set_transient( $cache_key, 1, WEEK_IN_SECONDS );
 	}
 }

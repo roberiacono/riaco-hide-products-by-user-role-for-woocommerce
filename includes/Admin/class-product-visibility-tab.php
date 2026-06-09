@@ -125,11 +125,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role' ) );
 		}
 
-		// Start with guest role.
-		$roles_data = array_merge(
-			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role' ) ) ),
-			wp_roles()->roles
-		);
+		$roles_data = $this->plugin->get_roles();
 
 		$terms = array();
 
@@ -180,7 +176,8 @@ class Product_Visibility_Tab implements ServiceInterface {
 			}
 		);
 
-		$current_terms = wp_get_object_terms( $variation->get_id(), $taxonomy, array( 'fields' => 'slugs' ) );
+		$variation_id  = method_exists( $variation, 'get_id' ) ? $variation->get_id() : absint( $variation->ID );
+		$current_terms = wp_get_object_terms( $variation_id, $taxonomy, array( 'fields' => 'slugs' ) );
 		$current_terms = is_wp_error( $current_terms ) ? array() : $current_terms;
 		?>
 		<div class="form-row form-row-full">
@@ -199,7 +196,11 @@ class Product_Visibility_Tab implements ServiceInterface {
 			?>
 		</div>
 		<?php
-		wp_nonce_field( 'riaco_hpburfw_save_visibility', 'riaco_hpburfw_variation_nonce' );
+		static $nonce_printed = false;
+		if ( ! $nonce_printed ) {
+			wp_nonce_field( 'riaco_hpburfw_save_visibility', 'riaco_hpburfw_variation_nonce' );
+			$nonce_printed = true;
+		}
 	}
 
 	/**

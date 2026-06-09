@@ -92,6 +92,12 @@ class Settings_Page implements ServiceInterface {
 				'taxonomy' => 'product_cat',
 				'terms'    => $this->get_taxonomy_tree( 'product_cat' ),
 			),
+			array(
+				'id'       => 'product_tag',
+				'label'    => esc_html__( 'Product Tag', 'riaco-hide-products-by-user-role' ),
+				'taxonomy' => 'product_tag',
+				'terms'    => $this->get_taxonomy_tree( 'product_tag' ),
+			),
 		);
 
 		/**
@@ -105,12 +111,15 @@ class Settings_Page implements ServiceInterface {
 			'riaco-hpburfw-admin-js',
 			'riaco_hpburfw_data',
 			array(
-				'roles'      => $roles,
-				'targets'    => $targets,
-				'rules'      => ! empty( $rules ) ? $rules : array(),
-				'move_up'    => __( 'Move up', 'riaco-hide-products-by-user-role' ),
-				'move_down'  => __( 'Move down', 'riaco-hide-products-by-user-role' ),
-				'remove_row' => __( 'Remove', 'riaco-hide-products-by-user-role' ),
+				'roles'          => $roles,
+				'targets'        => $targets,
+				'rules'          => ! empty( $rules ) ? $rules : array(),
+				'move_up'        => __( 'Move up', 'riaco-hide-products-by-user-role' ),
+				'move_down'      => __( 'Move down', 'riaco-hide-products-by-user-role' ),
+				'remove_row'     => __( 'Remove', 'riaco-hide-products-by-user-role' ),
+				'duplicate_row'  => __( 'Duplicate', 'riaco-hide-products-by-user-role' ),
+				'confirm_remove' => __( 'Remove this rule?', 'riaco-hide-products-by-user-role' ),
+				'no_rules'       => __( 'No rules yet. Click "Add Rule" to create your first visibility rule.', 'riaco-hide-products-by-user-role' ),
 			)
 		);
 
@@ -133,7 +142,13 @@ class Settings_Page implements ServiceInterface {
 	 * @return array Modified sections.
 	 */
 	public function add_settings_section( array $sections ): array {
-		$sections['riaco_hpburfw_rules'] = esc_html__( 'Hide by User Roles', 'riaco-hide-products-by-user-role' );
+		$count = count( get_option( $this->plugin->option_key, array() ) );
+		$label = $count > 0
+			/* translators: %d: number of active rules */
+			? sprintf( esc_html__( 'Hide by User Roles (%d)', 'riaco-hide-products-by-user-role' ), $count )
+			: esc_html__( 'Hide by User Roles', 'riaco-hide-products-by-user-role' );
+
+		$sections['riaco_hpburfw_rules'] = $label;
 		return $sections;
 	}
 
@@ -168,6 +183,8 @@ class Settings_Page implements ServiceInterface {
 
 		if ( ! isset( $_POST['riaco_hpburfw_rules'] ) ) {
 			update_option( 'riaco_hpburfw_rules', array() );
+			wp_cache_delete( 'riaco_hpburfw_rules', 'riaco_hpburfw' );
+			\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role' ) );
 			return;
 		}
 
@@ -200,6 +217,8 @@ class Settings_Page implements ServiceInterface {
 		}
 
 		update_option( 'riaco_hpburfw_rules', $sanitized_rules );
+		wp_cache_delete( 'riaco_hpburfw_rules', 'riaco_hpburfw' );
+		\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role' ) );
 		do_action( 'riaco_hpburfw_rules_saved', $sanitized_rules );
 	}
 
@@ -213,20 +232,21 @@ class Settings_Page implements ServiceInterface {
 			<h1><?php echo esc_html__( 'Hide products by user roles', 'riaco-hide-products-by-user-role' ); ?></h1>
 			<p>
 				<?php echo esc_html__( 'Set global hide by user roles rules for products.', 'riaco-hide-products-by-user-role' ); ?>
+				<?php echo esc_html__( 'Rules at the top take precedence. Use the arrows to reorder. If a user matches an "All Products" rule, lower rules are not evaluated.', 'riaco-hide-products-by-user-role' ); ?>
 			</p>
 
 			<div class="riaco-table-responsive">
 				<table class="wp-list-table widefat fixed striped" id="riaco-hpburfw-rules">
 					<colgroup>
-						<col style="width: 100px;">   <!-- Priority -->
-						<col>                        <!-- Role -->
-						<col>                        <!-- Target -->
-						<col>                        <!-- Terms -->
-						<col style="width: 100px;">  <!-- Actions -->
+						<col style="width: 100px;">
+						<col>
+						<col>
+						<col>
+						<col style="width: 150px;">
 					</colgroup>
 						<thead>
 							<tr>
-								<th></th>
+								<th><?php echo esc_html__( 'Priority', 'riaco-hide-products-by-user-role' ); ?></th>
 								<th><?php echo esc_html__( 'User Role', 'riaco-hide-products-by-user-role' ); ?></th>
 								<th><?php echo esc_html__( 'Target', 'riaco-hide-products-by-user-role' ); ?></th>
 								<th><?php echo esc_html__( 'Terms', 'riaco-hide-products-by-user-role' ); ?></th>
@@ -249,35 +269,51 @@ class Settings_Page implements ServiceInterface {
 	}
 
 	/**
-	 * Build a hierarchical (nested) array of taxonomy terms.
+	 * Build a hierarchical (nested) array of taxonomy terms in a single DB query.
 	 *
-	 * @param string $taxonomy  Taxonomy name (e.g. 'product_cat').
-	 * @param int    $parent_id Parent term ID (default 0).
+	 * @param string $taxonomy Taxonomy name (e.g. 'product_cat').
 	 * @return array
 	 */
-	private function get_taxonomy_tree( string $taxonomy, int $parent_id = 0 ): array {
-		$terms = get_terms(
+	private function get_taxonomy_tree( string $taxonomy ): array {
+		$all_terms = get_terms(
 			array(
 				'taxonomy'   => $taxonomy,
 				'hide_empty' => false,
-				'parent'     => $parent_id,
 			)
 		);
 
-		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+		if ( is_wp_error( $all_terms ) || empty( $all_terms ) ) {
 			return array();
 		}
 
-		$tree = array();
-
-		foreach ( $terms as $term ) {
-			$tree[] = array(
+		$flat = array();
+		foreach ( $all_terms as $term ) {
+			$flat[ $term->term_id ] = array(
 				'term_id'  => $term->term_id,
 				'name'     => $term->name,
 				'slug'     => $term->slug,
-				'children' => $this->get_taxonomy_tree( $taxonomy, $term->term_id ), // recursive.
+				'parent'   => $term->parent,
+				'children' => array(),
 			);
 		}
+
+		$tree = array();
+		foreach ( $flat as $id => &$node ) {
+			if ( $node['parent'] && isset( $flat[ $node['parent'] ] ) ) {
+				$flat[ $node['parent'] ]['children'][] = &$node;
+			} else {
+				$tree[] = &$node;
+			}
+		}
+		unset( $node );
+
+		$strip_parent = function ( array &$nodes ) use ( &$strip_parent ) {
+			foreach ( $nodes as &$node ) {
+				unset( $node['parent'] );
+				$strip_parent( $node['children'] );
+			}
+		};
+		$strip_parent( $tree );
 
 		return $tree;
 	}

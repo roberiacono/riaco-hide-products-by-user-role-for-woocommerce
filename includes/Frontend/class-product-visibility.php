@@ -93,13 +93,24 @@ class Product_Visibility implements ServiceInterface {
 	 */
 	private function get_visibility_rules() {
 
+		$cached = wp_cache_get( 'riaco_hpburfw_rules', 'riaco_hpburfw' );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
 		$rules = get_option( 'riaco_hpburfw_rules', array() );
 
 		if ( ! is_array( $rules ) ) {
 			$rules = array();
 		}
 
-		return apply_filters( 'riaco_hpburfw_visibility_rules', $rules );
+		$rules = apply_filters( 'riaco_hpburfw_visibility_rules', $rules );
+
+		usort( $rules, fn( $a, $b ) => ( $a['order'] ?? 0 ) <=> ( $b['order'] ?? 0 ) );
+
+		wp_cache_set( 'riaco_hpburfw_rules', $rules, 'riaco_hpburfw', HOUR_IN_SECONDS );
+
+		return $rules;
 	}
 
 	/**
@@ -210,7 +221,7 @@ class Product_Visibility implements ServiceInterface {
 				'field'            => 'term_id',
 				'terms'            => array_values( array_unique( $term_ids ) ),
 				'operator'         => 'NOT IN',
-				'include_children' => false, // prevent hiding products in child categories.
+				'include_children' => true,
 			);
 		}
 		$query->set( 'tax_query', $tax_query );
@@ -414,12 +425,13 @@ class Product_Visibility implements ServiceInterface {
 
 		$user       = wp_get_current_user();
 		$user_roles = $user->exists() ? $user->roles : array( 'guest' );
+		$user_roles = apply_filters( 'riaco_hpburfw_user_roles', $user_roles, $user );
 
 		// Build the slugs for terms we should hide.
 		$hidden_terms = array_map( fn( $r ) => 'hide-for-' . sanitize_title( $r ), $user_roles );
 
 		// Get variation terms.
-		$variation_terms = wp_get_object_terms( $variation->get_id(), 'riaco_hpburfw_visibility_role', array( 'fields' => 'slugs' ) );
+		$variation_terms = wp_get_object_terms( $variation->get_id(), $this->plugin->custom_taxonomy, array( 'fields' => 'slugs' ) );
 
 		if ( is_wp_error( $variation_terms ) ) {
 			return $variation_data;
@@ -448,7 +460,7 @@ class Product_Visibility implements ServiceInterface {
 
 		// 1️. Global rule for all products
 		if ( $this->has_global_hide_rule() ) {
-			$args['post_parent'] = -1;
+			$args['post__in'] = array( 0 );
 			return $args;
 		}
 
@@ -464,7 +476,7 @@ class Product_Visibility implements ServiceInterface {
 					'field'            => 'term_id',
 					'terms'            => array_values( array_unique( $term_ids ) ),
 					'operator'         => 'NOT IN',
-					'include_children' => false, // prevent hiding products in child categories.
+					'include_children' => true,
 				);
 			}
 		}

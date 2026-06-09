@@ -294,6 +294,28 @@ The JS manages the dynamic rules table entirely client-side; on form submit the 
 
 ---
 
+## Known Gotchas
+
+### `$variation` in `woocommerce_product_after_variable_attributes` is `WP_Post`, not `WC_Product_Variation`
+
+WooCommerce's AJAX variation-loading handler (`WC_AJAX::render_variation_html`) sets `$variation = get_post($variation_id)` before including the template and firing this hook. The parameter is a `WP_Post` object — **do not call `$variation->get_id()`** (PHP Fatal Error). Use:
+
+```php
+$variation_id = method_exists( $variation, 'get_id' ) ? $variation->get_id() : absint( $variation->ID );
+```
+
+This pattern handles both the current `WP_Post` behavior and any future WooCommerce change that passes a `WC_Product_Variation`.
+
+### `maybe_hide_variation` must compute user roles inline
+
+The `woocommerce_available_variation` filter fires at execution time (typically from `get_available_variations()` in product templates or REST API responses). Always call `wp_get_current_user()` inside the filter callback rather than caching roles at constructor/`plugins_loaded` time. REST API authentication completes after `plugins_loaded`, so a cached value set in the constructor can incorrectly resolve to `['guest']` for authenticated users — hiding variations for admins.
+
+### `is_admin()` is `true` for `admin-ajax.php`, `false` for REST API
+
+`Frontend\Product_Visibility` is loaded only when `! is_admin()`. This means it **IS loaded** for REST API requests (used by the WooCommerce block product editor), but **NOT loaded** for classic-editor AJAX calls through `admin-ajax.php`. Keep this in mind when adding frontend filters — REST API requests will trigger them.
+
+---
+
 ## Key Identifiers Reference
 
 | Identifier | Value |

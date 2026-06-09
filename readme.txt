@@ -54,14 +54,19 @@ Yes. You can create a rule with the “Guest” role and select which products o
 = Will this remove products from search results and archives? =
 Yes, hidden products are excluded from all WooCommerce queries (shop, category, tag, search, etc.).
 
-= Does it work with custom product types or taxonomies? =
-No, but you can extend it using filters to support any taxonomy.
+= Does it work with custom taxonomies? =
+Yes. Use the `riaco_hpburfw_targets` filter to add any custom taxonomy as a visibility target in the settings page.
 
 = Can I hide product variations? =
 Yes. Each variation can have its own visibility settings in the product edit screen.
 
 == Screenshots ==
 
-1. Global rules to hide products. 
+1. Global rules to hide products.
 2. Individual product rule.
 3. Individual product variation rule.
+
+== Changelog ==
+
+= 1.0.0 =
+* Initial release.
