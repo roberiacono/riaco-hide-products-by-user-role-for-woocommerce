@@ -2,7 +2,7 @@
 /**
  * Plugin Name: RIACO Hide Products by User Role
  * Description: Hide WooCommerce products by WordPress user role.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Roberto Iacono
  * Author URI:  https://riacoplugins.com/
  * Plugin URI:  https://wordpress.org/plugins/riaco-hide-products-by-user-role/
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RIACO_HPBURFW_VERSION', '1.0.0' );
+define( 'RIACO_HPBURFW_VERSION', '1.1.0' );
 
 use Riaco\HideProducts\Autoloader;
 use Riaco\HideProducts\Plugin;

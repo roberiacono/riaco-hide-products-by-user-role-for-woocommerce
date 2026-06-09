@@ -4,7 +4,7 @@
 
 - **Plugin slug**: `riaco-hide-products-by-user-role-for-woocommerce`
 - **Main file**: `riaco-hide-products-by-user-role.php`
-- **Version**: 1.0.0
+- **Version**: 1.1.0
 - **Author**: Roberto Iacono
 - **Text domain**: `riaco-hide-products-by-user-role-for-woocommerce`
 - **License**: GPL v2 or later
@@ -13,7 +13,7 @@
 
 **Purpose**: Hide WooCommerce products, product categories, and product variations based on WordPress user roles (including unauthenticated guests).
 
-**Requirements**: WordPress 6.2+, PHP 7.4+, WooCommerce 5.0+. Tested up to WC 10.3. HPOS compatible.
+**Requirements**: WordPress 6.2+, PHP 7.4+, WooCommerce 5.0+. Tested up to WC 10.8. HPOS compatible.
 
 ---
 

@@ -29,7 +29,7 @@ class Plugin {
 	 *
 	 * @var string
 	 */
-	public string $version = '1.0.0';
+	public string $version = '1.1.0';
 	/**
 	 * The main plugin file.
 	 *
