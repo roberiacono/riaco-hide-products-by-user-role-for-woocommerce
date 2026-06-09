@@ -113,6 +113,61 @@ class Plugin {
 
 		$this->loaded = true;
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( $this->file ), array( $this, 'add_action_links' ) );
+
+		if ( is_admin() ) {
+			add_filter( 'admin_footer_text', array( $this, 'admin_footer_review_text' ) );
+		}
+	}
+
+	/**
+	 * Appends a review request to the admin footer on the plugin's settings page.
+	 *
+	 * @param string $text Existing footer text.
+	 * @return string
+	 */
+	public function admin_footer_review_text( string $text ): string {
+		$screen = get_current_screen();
+
+		if (
+			! $screen ||
+			'woocommerce_page_wc-settings' !== $screen->id ||
+			! isset( $_GET['section'] ) || // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			'riaco_hpburfw_rules' !== sanitize_key( $_GET['section'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		) {
+			return $text;
+		}
+
+		$review_url = 'https://wordpress.org/support/plugin/riaco-hide-products-by-user-role/reviews/?filter=5#new-post';
+
+		return sprintf(
+			/* translators: %1$s: plugin name, %2$s: review URL */
+			wp_kses(
+				__( 'If you like %1$s please leave us a <a href="%2$s" target="_blank" rel="noopener noreferrer">★★★★★</a> rating. A huge thanks in advance!', 'riaco-hide-products-by-user-role' ),
+				array(
+					'a' => array(
+						'href'   => array(),
+						'target' => array(),
+						'rel'    => array(),
+					),
+				)
+			),
+			'<strong>' . esc_html__( 'Hide Products by User Role for WooCommerce', 'riaco-hide-products-by-user-role' ) . '</strong>',
+			esc_url( $review_url )
+		);
+	}
+
+	/**
+	 * Adds a Settings link to the plugin action links on the plugins page.
+	 *
+	 * @param array $links Existing action links.
+	 * @return array
+	 */
+	public function add_action_links( array $links ): array {
+		$settings_url  = admin_url( 'admin.php?page=wc-settings&tab=products&section=riaco_hpburfw_rules' );
+		$settings_link = '<a href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Settings', 'riaco-hide-products-by-user-role' ) . '</a>';
+		array_unshift( $links, $settings_link );
+		return $links;
 	}
 
 	/**
