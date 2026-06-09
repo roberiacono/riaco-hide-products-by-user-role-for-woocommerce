@@ -83,18 +83,18 @@ class Settings_Page implements ServiceInterface {
 		$targets = array(
 			array(
 				'id'       => 'all_products',
-				'label'    => esc_html__( 'All Products', 'riaco-hide-products-by-user-role' ),
+				'label'    => esc_html__( 'All Products', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 				'taxonomy' => null,
 			),
 			array(
 				'id'       => 'product_cat',
-				'label'    => esc_html__( 'Product Category', 'riaco-hide-products-by-user-role' ),
+				'label'    => esc_html__( 'Product Category', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 				'taxonomy' => 'product_cat',
 				'terms'    => $this->get_taxonomy_tree( 'product_cat' ),
 			),
 			array(
 				'id'       => 'product_tag',
-				'label'    => esc_html__( 'Product Tag', 'riaco-hide-products-by-user-role' ),
+				'label'    => esc_html__( 'Product Tag', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 				'taxonomy' => 'product_tag',
 				'terms'    => $this->get_taxonomy_tree( 'product_tag' ),
 			),
@@ -111,12 +111,12 @@ class Settings_Page implements ServiceInterface {
 			'roles'          => $roles,
 			'targets'        => $targets,
 			'rules'          => ! empty( $rules ) ? $rules : array(),
-			'move_up'        => __( 'Move up', 'riaco-hide-products-by-user-role' ),
-			'move_down'      => __( 'Move down', 'riaco-hide-products-by-user-role' ),
-			'remove_row'     => __( 'Remove', 'riaco-hide-products-by-user-role' ),
-			'duplicate_row'  => __( 'Duplicate', 'riaco-hide-products-by-user-role' ),
-			'confirm_remove' => __( 'Remove this rule?', 'riaco-hide-products-by-user-role' ),
-			'no_rules'       => __( 'No rules yet. Click "Add Rule" to create your first visibility rule.', 'riaco-hide-products-by-user-role' ),
+			'move_up'        => __( 'Move up', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+			'move_down'      => __( 'Move down', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+			'remove_row'     => __( 'Remove', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+			'duplicate_row'  => __( 'Duplicate', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+			'confirm_remove' => __( 'Remove this rule?', 'riaco-hide-products-by-user-role-for-woocommerce' ),
+			'no_rules'       => __( 'No rules yet. Click "Add Rule" to create your first visibility rule.', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 		);
 
 		/**
@@ -150,8 +150,8 @@ class Settings_Page implements ServiceInterface {
 		$count = count( get_option( $this->plugin->option_key, array() ) );
 		$label = $count > 0
 			/* translators: %d: number of active rules */
-			? sprintf( esc_html__( 'Hide by User Roles (%d)', 'riaco-hide-products-by-user-role' ), $count )
-			: esc_html__( 'Hide by User Roles', 'riaco-hide-products-by-user-role' );
+			? sprintf( esc_html__( 'Hide by User Roles (%d)', 'riaco-hide-products-by-user-role-for-woocommerce' ), $count )
+			: esc_html__( 'Hide by User Roles', 'riaco-hide-products-by-user-role-for-woocommerce' );
 
 		$sections['riaco_hpburfw_rules'] = $label;
 		return $sections;
@@ -189,7 +189,7 @@ class Settings_Page implements ServiceInterface {
 		if ( ! isset( $_POST['riaco_hpburfw_rules'] ) ) {
 			update_option( 'riaco_hpburfw_rules', array() );
 			wp_cache_delete( 'riaco_hpburfw_rules', 'riaco_hpburfw' );
-			\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role' ) );
+			\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
 			return;
 		}
 
@@ -231,7 +231,7 @@ class Settings_Page implements ServiceInterface {
 
 		update_option( 'riaco_hpburfw_rules', $sanitized_rules );
 		wp_cache_delete( 'riaco_hpburfw_rules', 'riaco_hpburfw' );
-		\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role' ) );
+		\WC_Admin_Settings::add_message( esc_html__( 'Rules saved.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
 		do_action( 'riaco_hpburfw_rules_saved', $sanitized_rules );
 	}
 
@@ -242,10 +242,10 @@ class Settings_Page implements ServiceInterface {
 		?>
 		
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Hide products by user roles', 'riaco-hide-products-by-user-role' ); ?></h1>
+			<h1><?php echo esc_html__( 'Hide products by user roles', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></h1>
 			<p>
-				<?php echo esc_html__( 'Set global hide by user roles rules for products.', 'riaco-hide-products-by-user-role' ); ?>
-				<?php echo esc_html__( 'Rules at the top take precedence. Use the arrows to reorder. If a user matches an "All Products" rule, lower rules are not evaluated.', 'riaco-hide-products-by-user-role' ); ?>
+				<?php echo esc_html__( 'Set global hide by user roles rules for products.', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?>
+				<?php echo esc_html__( 'Rules at the top take precedence. Use the arrows to reorder. If a user matches an "All Products" rule, lower rules are not evaluated.', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?>
 			</p>
 
 			<div class="riaco-table-responsive">
@@ -259,11 +259,11 @@ class Settings_Page implements ServiceInterface {
 					</colgroup>
 						<thead>
 							<tr>
-								<th><?php echo esc_html__( 'Priority', 'riaco-hide-products-by-user-role' ); ?></th>
-								<th><?php echo esc_html__( 'User Role', 'riaco-hide-products-by-user-role' ); ?></th>
-								<th><?php echo esc_html__( 'Target', 'riaco-hide-products-by-user-role' ); ?></th>
-								<th><?php echo esc_html__( 'Terms', 'riaco-hide-products-by-user-role' ); ?></th>
-								<th><?php echo esc_html__( 'Actions', 'riaco-hide-products-by-user-role' ); ?></th>
+								<th><?php echo esc_html__( 'Priority', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'User Role', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'Target', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'Terms', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
+								<th><?php echo esc_html__( 'Actions', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?></th>
 							<?php do_action( 'riaco_hpburfw_settings_table_columns' ); ?>
 							</tr>
 						</thead>
@@ -273,7 +273,7 @@ class Settings_Page implements ServiceInterface {
 				<?php do_action( 'riaco_hpburfw_settings_page_after_table', $this->plugin ); ?>
 				<p>
 					<button type="button" class="button" id="add-rule">
-						<?php echo esc_html__( 'Add Rule', 'riaco-hide-products-by-user-role' ); ?>
+						<?php echo esc_html__( 'Add Rule', 'riaco-hide-products-by-user-role-for-woocommerce' ); ?>
 					</button>
 				</p>
 

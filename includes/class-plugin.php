@@ -139,12 +139,12 @@ class Plugin {
 			return $text;
 		}
 
-		$review_url = 'https://wordpress.org/support/plugin/riaco-hide-products-by-user-role/reviews/?filter=5#new-post';
+		$review_url = 'https://wordpress.org/support/plugin/riaco-hide-products-by-user-role/reviews/';
 
 		return sprintf(
 			/* translators: %1$s: plugin name, %2$s: review URL */
 			wp_kses(
-				__( 'If you like %1$s please leave us a <a href="%2$s" target="_blank" rel="noopener noreferrer">★★★★★</a> rating. A huge thanks in advance!', 'riaco-hide-products-by-user-role' ),
+				__( 'If you like %1$s please leave us a <a href="%2$s" target="_blank" rel="noopener noreferrer">★★★★★</a> rating. A huge thanks in advance!', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 				array(
 					'a' => array(
 						'href'   => array(),
@@ -153,7 +153,7 @@ class Plugin {
 					),
 				)
 			),
-			'<strong>' . esc_html__( 'Hide Products by User Role for WooCommerce', 'riaco-hide-products-by-user-role' ) . '</strong>',
+			'<strong>' . esc_html__( 'Hide Products by User Role for WooCommerce', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</strong>',
 			esc_url( $review_url )
 		);
 	}
@@ -166,7 +166,7 @@ class Plugin {
 	 */
 	public function add_action_links( array $links ): array {
 		$settings_url  = admin_url( 'admin.php?page=wc-settings&tab=products&section=riaco_hpburfw_rules' );
-		$settings_link = '<a href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Settings', 'riaco-hide-products-by-user-role' ) . '</a>';
+		$settings_link = '<a href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Settings', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</a>';
 		array_unshift( $links, $settings_link );
 		return $links;
 	}
@@ -223,7 +223,7 @@ class Plugin {
 	 */
 	public function get_roles() {
 		$roles = array_merge(
-			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role' ) ) ),
+			array( 'guest' => array( 'name' => esc_html__( 'Guest', 'riaco-hide-products-by-user-role-for-woocommerce' ) ) ),
 			wp_roles()->roles
 		);
 		return apply_filters( 'riaco_hpburfw_roles', $roles );

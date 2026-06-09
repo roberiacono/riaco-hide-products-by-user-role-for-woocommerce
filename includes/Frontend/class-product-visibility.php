@@ -530,14 +530,14 @@ class Product_Visibility implements ServiceInterface {
 		}
 
 		$message  = '<div class="woocommerce-info">';
-		$message .= esc_html__( 'You must be logged in to view this product.', 'riaco-hide-products-by-user-role' ) . ' ';
+		$message .= esc_html__( 'You must be logged in to view this product.', 'riaco-hide-products-by-user-role-for-woocommerce' ) . ' ';
 		$message .= '<a href="' . esc_url( $login_url ) . '" class="woocommerce-button login-link">';
-		$message .= esc_html__( 'Log in', 'riaco-hide-products-by-user-role' ) . '</a>';
+		$message .= esc_html__( 'Log in', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</a>';
 
 		if ( $register_url ) {
-			$message .= ' ' . esc_html__( 'or', 'riaco-hide-products-by-user-role' ) . ' ';
+			$message .= ' ' . esc_html__( 'or', 'riaco-hide-products-by-user-role-for-woocommerce' ) . ' ';
 			$message .= '<a href="' . esc_url( $register_url ) . '" class="woocommerce-button register-link">';
-			$message .= esc_html__( 'Register', 'riaco-hide-products-by-user-role' ) . '</a>';
+			$message .= esc_html__( 'Register', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</a>';
 		}
 
 		$message .= '</div>';
@@ -553,10 +553,10 @@ class Product_Visibility implements ServiceInterface {
 		$shop_url   = wc_get_page_permalink( 'shop' );
 
 		$message  = '<div class="woocommerce-info">';
-		$message .= esc_html__( 'Products are hidden for your user role.', 'riaco-hide-products-by-user-role' ) . ' ';
+		$message .= esc_html__( 'Products are hidden for your user role.', 'riaco-hide-products-by-user-role-for-woocommerce' ) . ' ';
 
 		$message .= '<a href="' . esc_url( $logout_url ) . '" class="woocommerce-button logout-link">';
-		$message .= esc_html__( 'Log out', 'riaco-hide-products-by-user-role' ) . '</a>.';
+		$message .= esc_html__( 'Log out', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</a>.';
 
 		$message .= '</div>';
 
