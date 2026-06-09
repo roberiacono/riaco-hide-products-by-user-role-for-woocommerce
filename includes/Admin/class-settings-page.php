@@ -69,7 +69,7 @@ class Settings_Page implements ServiceInterface {
 			return;
 		}
 
-		$roles = $this->plugin->get_roles();
+		$roles = array_map( fn( $r ) => array( 'name' => $r['name'] ), $this->plugin->get_roles() );
 		$rules = get_option( $this->plugin->option_key, array() );
 
 		wp_enqueue_script(
@@ -201,6 +201,10 @@ class Settings_Page implements ServiceInterface {
 
 		$raw_rules = filter_input( INPUT_POST, 'riaco_hpburfw_rules', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
 
+		if ( ! is_array( $raw_rules ) ) {
+			return;
+		}
+
 		foreach ( $raw_rules as $rule ) {
 			if ( ! is_array( $rule ) ) {
 				continue; // Skip invalid entries.
@@ -277,8 +281,8 @@ class Settings_Page implements ServiceInterface {
 					</button>
 				</p>
 
-		</div>
 		<?php wp_nonce_field( 'riaco_hpburfw_save_rules', 'riaco_hpburfw_nonce' ); ?>
+		</div>
 
 		<?php
 	}

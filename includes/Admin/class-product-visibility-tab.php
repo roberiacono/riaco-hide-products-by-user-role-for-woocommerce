@@ -102,8 +102,9 @@ class Product_Visibility_Tab implements ServiceInterface {
 
 			// Get assigned taxonomy terms for this product.
 			$assigned_terms = wp_get_object_terms( $post->ID, $this->plugin->custom_taxonomy, array( 'fields' => 'slugs' ) );
-			// Normalize for comparison.
-			$assigned_terms = is_array( $assigned_terms ) ? $assigned_terms : array();
+			if ( is_wp_error( $assigned_terms ) ) {
+				$assigned_terms = array();
+			}
 
 			// Output checkboxes using WooCommerce helper function.
 			foreach ( $roles as $role_key => $role_data ) {
@@ -137,12 +138,11 @@ class Product_Visibility_Tab implements ServiceInterface {
 			return;
 		}
 
-		if ( empty( $_POST['riaco_hpburfw_visibility_nonce'] ) ) {
+		if (
+			! isset( $_POST['riaco_hpburfw_visibility_nonce'] ) ||
+			! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_visibility_nonce'] ), 'riaco_hpburfw_visibility_save' )
+		) {
 			return;
-		}
-
-		if ( ! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_visibility_nonce'] ), 'riaco_hpburfw_visibility_save' ) ) {
-			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
 		}
 
 		$roles_data = $this->plugin->get_roles();
@@ -239,12 +239,11 @@ class Product_Visibility_Tab implements ServiceInterface {
 			return;
 		}
 
-		if ( empty( $_POST['riaco_hpburfw_variation_nonce'] ) ) {
+		if (
+			! isset( $_POST['riaco_hpburfw_variation_nonce'] ) ||
+			! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_variation_nonce'] ), 'riaco_hpburfw_save_visibility' )
+		) {
 			return;
-		}
-
-		if ( ! wp_verify_nonce( sanitize_key( $_POST['riaco_hpburfw_variation_nonce'] ), 'riaco_hpburfw_save_visibility' ) ) {
-			wp_die( esc_html__( 'Security check failed.', 'riaco-hide-products-by-user-role-for-woocommerce' ) );
 		}
 
 		$taxonomy = $this->plugin->custom_taxonomy;

@@ -2,7 +2,7 @@
 Contributors: prototipo88  
 Tags:  hide products, product restrictions, products visibility, woocommerce 
 Requires at least: 6.2
-Tested up to: 6.8  
+Tested up to: 7.0  
 Stable tag: 1.0.0  
 Requires PHP: 7.4  
 License: GPL v2 or later  

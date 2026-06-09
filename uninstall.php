@@ -36,7 +36,7 @@ if ( ! taxonomy_exists( $riaco_hpburfw_custom_taxonomy ) ) {
 }
 
 // remove all custom taxonomies.
-$terms = get_terms(
+$riaco_hpburfw_terms = get_terms(
 	array(
 		'taxonomy'   => $riaco_hpburfw_custom_taxonomy,
 		'hide_empty' => false,
@@ -44,9 +44,9 @@ $terms = get_terms(
 );
 
 
-if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
-	foreach ( $terms as $singular_term ) {
-		wp_delete_term( $singular_term->term_id, $riaco_hpburfw_custom_taxonomy );
+if ( ! is_wp_error( $riaco_hpburfw_terms ) && ! empty( $riaco_hpburfw_terms ) ) {
+	foreach ( $riaco_hpburfw_terms as $riaco_hpburfw_singular_term ) {
+		wp_delete_term( $riaco_hpburfw_singular_term->term_id, $riaco_hpburfw_custom_taxonomy );
 	}
 }
 

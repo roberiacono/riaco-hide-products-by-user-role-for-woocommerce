@@ -6,7 +6,7 @@
 - **Main file**: `riaco-hide-products-by-user-role.php`
 - **Version**: 1.0.0
 - **Author**: Roberto Iacono
-- **Text domain**: `riaco-hide-products-by-user-role`
+- **Text domain**: `riaco-hide-products-by-user-role-for-woocommerce`
 - **License**: GPL v2 or later
 - **Repository**: https://github.com/roberiacono/riaco-hide-products-by-user-role-for-woocommerce
 - **WordPress.org**: Published on the official plugin repository

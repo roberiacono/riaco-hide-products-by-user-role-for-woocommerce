@@ -28,13 +28,6 @@ class Product_Visibility implements ServiceInterface {
 	private $rules;
 
 	/**
-	 * Current user roles.
-	 *
-	 * @var array
-	 */
-	private $user_roles;
-
-	/**
 	 * Reference to main plugin class.
 	 *
 	 * @var Plugin
@@ -47,9 +40,8 @@ class Product_Visibility implements ServiceInterface {
 	 * @param Plugin $plugin Main plugin instance.
 	 */
 	public function __construct( $plugin ) {
-		$this->plugin     = $plugin;
-		$this->rules      = $this->get_visibility_rules();
-		$this->user_roles = $this->get_current_user_roles();
+		$this->plugin = $plugin;
+		$this->rules  = $this->get_visibility_rules();
 	}
 
 	/**
@@ -145,9 +137,10 @@ class Product_Visibility implements ServiceInterface {
 	 * Check if there is a global hide rule for all products for current user roles.
 	 */
 	private function has_global_hide_rule(): bool {
-		$user = wp_get_current_user();
+		$user       = wp_get_current_user();
+		$user_roles = $this->get_current_user_roles();
 		foreach ( $this->rules as $rule ) {
-			$role_matches = in_array( $rule['role'], $this->user_roles, true );
+			$role_matches = in_array( $rule['role'], $user_roles, true );
 			$applies      = apply_filters( 'riaco_hpburfw_rule_applies', $role_matches, $rule, $user );
 			if ( $applies && 'all_products' === $rule['target'] ) {
 				return true;
@@ -169,7 +162,9 @@ class Product_Visibility implements ServiceInterface {
 	 * Get target terms to hide based on rules and current user roles.
 	 */
 	private function get_hidden_target_terms(): array {
-		$terms = array();
+		$terms      = array();
+		$user       = wp_get_current_user();
+		$user_roles = $this->get_current_user_roles();
 
 		foreach ( $this->rules as $rule ) {
 			// Skip incomplete rules.
@@ -182,8 +177,8 @@ class Product_Visibility implements ServiceInterface {
 			}
 
 			// Only include rules that match current user roles.
-			$role_matches = in_array( $rule['role'], $this->user_roles, true );
-			$applies      = apply_filters( 'riaco_hpburfw_rule_applies', $role_matches, $rule, wp_get_current_user() );
+			$role_matches = in_array( $rule['role'], $user_roles, true );
+			$applies      = apply_filters( 'riaco_hpburfw_rule_applies', $role_matches, $rule, $user );
 			if ( ! $applies ) {
 				continue;
 			}
@@ -236,11 +231,12 @@ class Product_Visibility implements ServiceInterface {
 	 * Get hidden terms of the custom taxonomy based on current user roles.
 	 */
 	private function get_hidden_terms_of_custom_taxonomy(): array {
+		$user_roles   = $this->get_current_user_roles();
 		$hidden_terms = array_map(
 			function ( $role ) {
-				return 'hide-for-' . $role;
+				return 'hide-for-' . sanitize_title( $role );
 			},
-			$this->user_roles
+			$user_roles
 		);
 		return $hidden_terms;
 	}
@@ -486,7 +482,7 @@ class Product_Visibility implements ServiceInterface {
 		$hidden_terms = $this->get_hidden_terms_of_custom_taxonomy();
 
 		if ( ! isset( $args['tax_query'] ) ) {
-			$args['tax_query'] = array();
+			$args['tax_query'] = array(); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
 		}
 
 		$args['tax_query'][] = array(
