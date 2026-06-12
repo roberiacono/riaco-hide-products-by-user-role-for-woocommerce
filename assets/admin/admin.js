@@ -137,9 +137,10 @@ jQuery(document).ready(function ($) {
 
   function addRow() {
     riaco_hpburfw_data.rules.push({
-      role: Object.keys(riaco_hpburfw_data.roles)[0] || "",
+      order:  riaco_hpburfw_data.rules.length,
+      role:   Object.keys(riaco_hpburfw_data.roles)[0] || "",
       target: "all_products",
-      terms: [],
+      terms:  [],
     });
     const newIndex = riaco_hpburfw_data.rules.length - 1;
     refreshTable();
@@ -214,9 +215,11 @@ jQuery(document).ready(function ($) {
     "change",
     'select[name*="[role]"]',
     function () {
-      const row = $(this).closest("tr");
+      const row   = $(this).closest("tr");
       const index = row.index();
-      riaco_hpburfw_data.rules[index].role = $(this).val();
+      const role  = $(this).val();
+      riaco_hpburfw_data.rules[index].role = role;
+      $(document).trigger('riaco_hpburfw:role_changed', { index: index, role: role });
     }
   );
 

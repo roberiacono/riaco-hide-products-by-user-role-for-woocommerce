@@ -108,7 +108,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 
 			// Output checkboxes using WooCommerce helper function.
 			foreach ( $roles as $role_key => $role_data ) {
-				$term_slug = 'hide-for-' . $role_key;
+				$term_slug = 'hide-for-' . sanitize_title( $role_key );
 
 				woocommerce_wp_checkbox(
 					array(
@@ -152,7 +152,7 @@ class Product_Visibility_Tab implements ServiceInterface {
 		foreach ( $roles_data as $role_key => $role_data ) {
 			$field_id = 'riaco_hpburfw_role_' . $role_key;
 			if ( ! empty( $_POST[ $field_id ] ) && 'yes' === $_POST[ $field_id ] ) {
-				$terms[] = 'hide-for-' . sanitize_text_field( $role_key );
+				$terms[] = 'hide-for-' . sanitize_title( $role_key );
 			}
 		}
 

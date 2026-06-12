@@ -152,13 +152,21 @@ class Product_Visibility implements ServiceInterface {
 			}
 		}
 
-		// Level 3: Product-specific visibility via custom taxonomy (always applied).
-		$tax_conditions[] = array(
-			'taxonomy' => $this->plugin->custom_taxonomy,
-			'field'    => 'slug',
-			'terms'    => $this->get_hidden_terms_of_custom_taxonomy(),
-			'operator' => 'NOT IN',
-		);
+		// Level 3: Product-specific visibility via custom taxonomy.
+		$level3_terms = $this->get_hidden_terms_of_custom_taxonomy();
+		if ( ! empty( $level3_terms ) ) {
+			$tax_conditions[] = array(
+				'taxonomy' => $this->plugin->custom_taxonomy,
+				'field'    => 'slug',
+				'terms'    => $level3_terms,
+				'operator' => 'NOT IN',
+			);
+		}
+
+		// Only the 'relation' key remains — nothing to apply.
+		if ( count( $tax_conditions ) === 1 ) {
+			return array();
+		}
 
 		return array( 'tax_query' => $tax_conditions );
 	}
@@ -293,6 +301,12 @@ class Product_Visibility implements ServiceInterface {
 		}
 
 		if ( ! $query->is_search() ) {
+			return;
+		}
+
+		// Bail if WooCommerce will also fire woocommerce_product_query on this object,
+		// which calls apply_visibility_query() via filter_wc_product_query() — avoiding double-application.
+		if ( $query->get( 'wc_query' ) ) {
 			return;
 		}
 

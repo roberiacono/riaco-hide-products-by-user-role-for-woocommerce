@@ -108,11 +108,13 @@ Array of rule objects stored via `update_option()`:
 
 - **Taxonomy slug**: `riaco_hpburfw_visibility_role`
 - **Applied to**: `product` and `product_variation` post types
-- **Term slug pattern**: `hide-for-{role_key}` (e.g., `hide-for-guest`, `hide-for-subscriber`)
+- **Term slug pattern**: `hide-for-{sanitize_title($role_key)}` (e.g., `hide-for-guest`, `hide-for-shop-manager`)
 - **Storage**: Standard WordPress taxonomy — `wp_term_relationships` table
 - **Assignment**: `wp_set_object_terms($product_id, ['hide-for-guest'], 'riaco_hpburfw_visibility_role')`
 
 Default terms are created for all registered roles plus `guest` on plugin activation.
+
+**Critical invariant**: Every place that constructs a term slug from a role key **must** use `sanitize_title( $role_key )` — not `sanitize_text_field()` and not the raw key. `sanitize_title()` converts underscores to hyphens (e.g., `shop_manager` → `shop-manager`), which is what the taxonomy actually stores. Using any other sanitization produces a mismatch and silently breaks hiding for that role.
 
 ---
 
@@ -120,8 +122,9 @@ Default terms are created for all registered roles plus `guest` on plugin activa
 
 The single source of truth is `Frontend\Product_Visibility::build_visibility_conditions()`, which returns one of:
 
+- `[]` — no conditions apply; callers skip modification entirely.
 - `['post__in' => [0]]` — global hide rule matched; all products hidden.
-- `['tax_query' => ['relation' => 'AND', ...]]` — tax_query conditions for levels 2 & 3 (always returned; at minimum contains the Level 3 condition).
+- `['tax_query' => ['relation' => 'AND', ...]]` — tax_query conditions for levels 2 and/or 3.
 
 Two callers consume the result:
 
@@ -134,7 +137,9 @@ The three levels themselves:
 
 1. **Global hide** — only evaluated when global rules exist. If a rule matches the user's role with `target = 'all_products'`, hide all products and return early.
 2. **Target-based hiding** — only evaluated when global rules exist. If rules match the user's role targeting a taxonomy (e.g., `product_cat`), add a `NOT IN` condition for those term IDs.
-3. **Product-specific hiding** — **always applied**, regardless of whether any global rules are configured. Adds a `NOT IN` condition on `riaco_hpburfw_visibility_role` to exclude products with the matching `hide-for-{role}` term assigned.
+3. **Product-specific hiding** — applied when the current user has at least one role that maps to a visible term slug. Adds a `NOT IN` condition on `riaco_hpburfw_visibility_role` to exclude products with the matching `hide-for-{role}` term assigned. Works independently of global rules — a product can be hidden per-product even with no global rules configured.
+
+If no conditions were produced by any level (e.g., guest with no hide-for-guest terms assigned to any product and no global rules), the function returns `[]` and callers leave the query untouched.
 
 `maybe_hide_variation()` also applies levels 1 and 2 before checking variation-specific terms.
 
@@ -161,7 +166,7 @@ The three levels themselves:
 |---|---|---|
 | `plugins_loaded` | action | Initialize plugin |
 | `woocommerce_product_query` | action | Filter WooCommerce product queries |
-| `pre_get_posts` | action | Filter search queries |
+| `pre_get_posts` | action | Filter non-WC search queries (bails when `wc_query` is set to avoid double-application with `woocommerce_product_query`) |
 | `template_redirect` | action | Hide single product pages (redirect) |
 | `rest_product_query` | filter | Filter REST API product queries |
 | `woocommerce_available_variation` | filter | Hide product variations |
@@ -427,6 +432,7 @@ The JS manages the dynamic rules table entirely client-side; on form submit the 
 | `riaco_hpburfw:table_refreshed` | `document` | `{ rules }` |
 | `riaco_hpburfw:row_rendered` | the `<tr>` element | `{ index, rule }` |
 | `riaco_hpburfw:target_changed` | `document` | `{ index, target }` |
+| `riaco_hpburfw:role_changed` | `document` | `{ index, role }` |
 
 `riaco_hpburfw:row_rendered` is the primary hook for injecting per-row extra cells. It fires on the `<tr>` element so extension JS can use `$(tr).append(...)` to add extra `<td>` cells matching any `<th>` columns added via `riaco_hpburfw_settings_table_columns`.
 
@@ -475,7 +481,7 @@ bash bin/install-wp-tests.sh riaco_hide_test root '' 127.0.0.1 latest
 **Known test framework behavior:**
 
 - `_delete_all_data()` runs in `tear_down_after_class()` and deletes ALL terms from `wp_terms` / `wp_term_taxonomy` (WHERE term_id != 1) between test classes. Any test class that needs taxonomy terms must re-create them in `set_up()` — delete the transient and call `maybe_create_default_terms()` explicitly.
-- `build_visibility_conditions()` always returns a `tax_query` (never an empty array) because Level 3 is unconditionally applied. Tests must not assert that args are unchanged; assert the absence of `post__in` instead.
+- `build_visibility_conditions()` returns `[]` when no conditions apply (no global rules and the current user's role has no hidden terms). Tests for the "no rules" case can assert that query args are unchanged.
 
 ---
 
