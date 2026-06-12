@@ -3,7 +3,7 @@ Contributors: prototipo88
 Tags: hide products, woocommerce, user role, product visibility, restrict products
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 10.8.1
@@ -158,6 +158,9 @@ The plugin works with any user role that WordPress recognises. If your membershi
 
 == Changelog ==
 
+= 1.1.1 =
+* Fixed per-product hiding silently failing without global rules.
+
 = 1.1.0 =
 * Added Product Tag as a global rule target alongside Product Category.
 * Added duplicate rule button in the global rules settings table.
@@ -177,6 +180,9 @@ The plugin works with any user role that WordPress recognises. If your membershi
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.1.1 =
+Bug fix: per-product hiding now works correctly when no global rules are configured.
 
 = 1.1.0 =
 Includes REST API bug fixes and significant new features. Update recommended for all users.
