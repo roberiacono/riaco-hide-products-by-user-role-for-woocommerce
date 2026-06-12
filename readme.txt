@@ -10,7 +10,7 @@ WC tested up to: 10.8
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Control which WooCommerce products are visible to each user role. Hide products, categories, and variations from guests or any role — no coding required.
+Control WooCommerce product visibility by user role. Hide products, categories, and variations from guests or any role — no coding required.
 
 == Description ==
 
