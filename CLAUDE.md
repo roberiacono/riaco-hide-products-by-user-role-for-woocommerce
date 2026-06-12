@@ -24,6 +24,9 @@ riaco-hide-products-by-user-role-for-woocommerce/
 ├── riaco-hide-products-by-user-role.php     Plugin entry point (header + bootstrap)
 ├── uninstall.php                            Cleanup on plugin deletion
 ├── readme.txt                               WordPress.org plugin readme
+├── composer.json                            Dev dependencies (PHPUnit, polyfills)
+├── phpunit.xml.dist                         PHPUnit configuration
+├── wp-tests-config.php                      Local DB config for tests (gitignored)
 ├── assets/
 │   └── admin/
 │       ├── admin.js                         jQuery UI for settings page rules table
@@ -39,8 +42,14 @@ riaco-hide-products-by-user-role-for-woocommerce/
 │   │   └── class-product-visibility-tab.php Product/variation edit tab
 │   └── Frontend/
 │       └── class-product-visibility.php     Query filtering engine
-└── languages/
-    └── riaco-hide-products-by-user-role.pot Translation template
+├── languages/
+│   └── riaco-hide-products-by-user-role.pot Translation template
+└── tests/
+    ├── bootstrap.php                        PHPUnit bootstrap (loads WP + WC + plugin)
+    ├── Test_Plugin.php                      Plugin class tests
+    ├── Test_CustomTaxonomy.php              Taxonomy registration & default terms tests
+    ├── Test_ProductVisibility.php           Three-level filtering engine tests
+    └── Test_SettingsPage.php               Settings save/sanitization tests
 ```
 
 ---
@@ -111,9 +120,8 @@ Default terms are created for all registered roles plus `guest` on plugin activa
 
 The single source of truth is `Frontend\Product_Visibility::build_visibility_conditions()`, which returns one of:
 
-- `[]` — no rules apply; callers skip modification.
 - `['post__in' => [0]]` — global hide rule matched; all products hidden.
-- `['tax_query' => ['relation' => 'AND', ...]]` — tax_query conditions for levels 2 & 3.
+- `['tax_query' => ['relation' => 'AND', ...]]` — tax_query conditions for levels 2 & 3 (always returned; at minimum contains the Level 3 condition).
 
 Two callers consume the result:
 
@@ -124,9 +132,9 @@ Both merge the returned `tax_query` group in a nested AND so that any pre-existi
 
 The three levels themselves:
 
-1. **Global hide** — if a rule exists for the user's role with `target = 'all_products'`, hide all products and return early.
-2. **Target-based hiding** — if rules exist for the user's role targeting a taxonomy (e.g., `product_cat`), add a `NOT IN` condition for those term IDs.
-3. **Product-specific hiding** — add a `NOT IN` condition on `riaco_hpburfw_visibility_role` to exclude products with the matching `hide-for-{role}` term assigned.
+1. **Global hide** — only evaluated when global rules exist. If a rule matches the user's role with `target = 'all_products'`, hide all products and return early.
+2. **Target-based hiding** — only evaluated when global rules exist. If rules match the user's role targeting a taxonomy (e.g., `product_cat`), add a `NOT IN` condition for those term IDs.
+3. **Product-specific hiding** — **always applied**, regardless of whether any global rules are configured. Adds a `NOT IN` condition on `riaco_hpburfw_visibility_role` to exclude products with the matching `hide-for-{role}` term assigned.
 
 `maybe_hide_variation()` also applies levels 1 and 2 before checking variation-specific terms.
 
@@ -427,11 +435,47 @@ The JS manages the dynamic rules table entirely client-side; on form submit the 
 ## Tooling
 
 - **No build pipeline** — PHP files are edited directly; JS/CSS are plain files (no transpilation, no bundling)
-- **No composer.json** — no PHP dependencies beyond WordPress/WooCommerce core
 - **No package.json** — no Node.js tooling
-- **No automated tests** — no PHPUnit, no Jest
 - **No CI/CD** — no GitHub Actions or similar
 - **No linting config** — no PHPCS, ESLint, or Stylelint
+
+### Automated Tests (PHPUnit)
+
+Tests use WordPress's integration test framework (`WP_UnitTestCase`) with a real MySQL database and WooCommerce loaded.
+
+**Prerequisites** (one-time setup):
+
+```bash
+# Install dev dependencies
+composer install
+
+# Install WordPress test library (creates /tmp/wordpress and /tmp/wordpress-tests-lib)
+bash bin/install-wp-tests.sh riaco_hide_test root '' 127.0.0.1 latest
+
+# Create wp-tests-config.php (gitignored) — copy from the template and set local DB credentials
+```
+
+`wp-tests-config.php` must define: `ABSPATH`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `$table_prefix`, and the standard `WP_TESTS_*` constants.
+
+**Run tests:**
+
+```bash
+./vendor/bin/phpunit --no-coverage
+```
+
+**Test files:**
+
+| File | What it covers |
+|---|---|
+| `tests/Test_Plugin.php` | `get_roles()`, `add_action_links()`, `register_service()`, `is_loaded()` |
+| `tests/Test_CustomTaxonomy.php` | Taxonomy registration, default term creation, idempotency |
+| `tests/Test_ProductVisibility.php` | All three filtering levels, REST API, FiboSearch, variations, filters |
+| `tests/Test_SettingsPage.php` | Rule save/sanitization, nonce/capability guards, extensibility hooks |
+
+**Known test framework behavior:**
+
+- `_delete_all_data()` runs in `tear_down_after_class()` and deletes ALL terms from `wp_terms` / `wp_term_taxonomy` (WHERE term_id != 1) between test classes. Any test class that needs taxonomy terms must re-create them in `set_up()` — delete the transient and call `maybe_create_default_terms()` explicitly.
+- `build_visibility_conditions()` always returns a `tax_query` (never an empty array) because Level 3 is unconditionally applied. Tests must not assert that args are unchanged; assert the absence of `post__in` instead.
 
 ---
 

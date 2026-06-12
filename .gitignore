@@ -13,6 +13,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+vendor/
 
 # Optional npm cache directory
 .npm
@@ -28,3 +29,9 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# WordPress test config (contains local DB credentials)
+wp-tests-config.php
+
+# AI / IDE tool directories
+.claude/
