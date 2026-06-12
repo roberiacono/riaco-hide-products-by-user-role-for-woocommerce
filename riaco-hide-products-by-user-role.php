@@ -10,9 +10,11 @@
  * Domain Path: /languages
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Requires Plugins:  woocommerce
+ * Requires at least:  6.2
+ * Requires PHP:       7.4
+ * Requires Plugins:   woocommerce
  * WC requires at least: 5.0
- * WC tested up to:  10.8
+ * WC tested up to:   10.8.1
  * WC HPOS compatible: yes
  *
  * @package     Riaco\HideProducts
