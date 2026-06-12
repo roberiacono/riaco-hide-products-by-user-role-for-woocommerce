@@ -21,8 +21,16 @@
   opacity: 0.3;
   cursor: default;
 }
+.riaco-hpburfw-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 #riaco-hpburfw-rules .remove-row {
   color: #b32d2e;
+  border: none;
 }
 
 #riaco-hpburfw-rules select {

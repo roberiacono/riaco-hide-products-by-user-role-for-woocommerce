@@ -108,8 +108,10 @@ jQuery(document).ready(function ($) {
         </td>
   
         <td>
-          <button type="button" class="button button-link duplicate-row">${escHtml(riaco_hpburfw_data.duplicate_row)}</button>
-          <button type="button" class="button button-link remove-row">${escHtml(riaco_hpburfw_data.remove_row)}</button>
+          <div class="riaco-hpburfw-row-actions">
+            <button type="button" class="button button-secondary duplicate-row">${escHtml(riaco_hpburfw_data.duplicate_row)}</button>
+            <button type="button" class="button button-link-delete remove-row">${escHtml(riaco_hpburfw_data.remove_row)}</button>
+          </div>
         </td>
       </tr>
     `;
