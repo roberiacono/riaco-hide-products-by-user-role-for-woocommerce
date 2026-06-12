@@ -132,29 +132,27 @@ class Product_Visibility implements ServiceInterface {
 	 * @return array
 	 */
 	private function build_visibility_conditions(): array {
-		if ( empty( $this->rules ) ) {
-			return array();
-		}
-
-		// Level 1: Global hide rule — no products at all.
-		if ( $this->has_global_hide_rule() ) {
-			return array( 'post__in' => array( 0 ) );
-		}
-
 		$tax_conditions = array( 'relation' => 'AND' );
 
-		// Level 2: Category/tag-specific hide rules.
-		foreach ( $this->get_hidden_target_terms() as $target => $term_ids ) {
-			$tax_conditions[] = array(
-				'taxonomy'         => $target,
-				'field'            => 'term_id',
-				'terms'            => $term_ids,
-				'operator'         => 'NOT IN',
-				'include_children' => true,
-			);
+		if ( ! empty( $this->rules ) ) {
+			// Level 1: Global hide rule — no products at all.
+			if ( $this->has_global_hide_rule() ) {
+				return array( 'post__in' => array( 0 ) );
+			}
+
+			// Level 2: Category/tag-specific hide rules.
+			foreach ( $this->get_hidden_target_terms() as $target => $term_ids ) {
+				$tax_conditions[] = array(
+					'taxonomy'         => $target,
+					'field'            => 'term_id',
+					'terms'            => $term_ids,
+					'operator'         => 'NOT IN',
+					'include_children' => true,
+				);
+			}
 		}
 
-		// Level 3: Product-specific visibility via custom taxonomy.
+		// Level 3: Product-specific visibility via custom taxonomy (always applied).
 		$tax_conditions[] = array(
 			'taxonomy' => $this->plugin->custom_taxonomy,
 			'field'    => 'slug',
@@ -338,10 +336,6 @@ class Product_Visibility implements ServiceInterface {
 
 		global $post;
 		if ( ! $post ) {
-			return;
-		}
-
-		if ( empty( $this->rules ) ) {
 			return;
 		}
 
