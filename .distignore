@@ -1,0 +1,12 @@
+.claude/
+.distignore
+.git/
+.gitignore
+.phpunit.result.cache
+CLAUDE.md
+composer.json
+composer.lock
+phpunit.xml.dist
+tests/
+vendor/
+wp-tests-config.php
