@@ -16,6 +16,8 @@ Control WooCommerce product visibility by user role. Hide products, categories, 
 
 **Hide Products by User Role for WooCommerce** gives store owners complete control over product visibility based on WordPress user roles — including guests (unauthenticated visitors). Set global rules from the WooCommerce settings screen, or configure visibility per product and per variation, all without writing a line of code.
 
+[Live demo](https://playground.wordpress.net/?plugin=woocommerce&plugin=riaco-hide-products-by-user-role)
+
 Whether you run a B2B wholesale store, a membership site, or simply want to keep certain products away from guests, this plugin enforces visibility at the query level so hidden products never leak through search, archives, the REST API, or direct URL access.
 
 ### Why store owners choose this plugin
