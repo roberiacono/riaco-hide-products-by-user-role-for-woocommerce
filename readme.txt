@@ -3,7 +3,7 @@ Contributors: prototipo88
 Tags: hide products, woocommerce, user role, product visibility, restrict products
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 10.8.1
@@ -160,6 +160,10 @@ The plugin works with any user role that WordPress recognises. If your membershi
 
 == Changelog ==
 
+= 1.1.2 =
+* Fixed a fatal error in the admin footer when another plugin returns a non-string value from the `admin_footer_text` filter, which prevented editor scripts (e.g. Yoast SEO metabox, permalink editing) from loading.
+* Hardened other filter callbacks against unexpected value types from third-party plugins.
+
 = 1.1.1 =
 * Fixed per-product hiding silently failing without global rules.
 
@@ -182,6 +186,9 @@ The plugin works with any user role that WordPress recognises. If your membershi
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.1.2 =
+Fixes a conflict that could break the post/page editor (Yoast SEO metabox, permalink editing). Update recommended.
 
 = 1.1.1 =
 Bug fix: per-product hiding now works correctly when no global rules are configured.

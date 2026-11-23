@@ -319,11 +319,12 @@ class Product_Visibility implements ServiceInterface {
 	 * has_global_hide_rule() result is cached so this is cheap on pages with
 	 * multiple product collection blocks.
 	 *
-	 * @param string $block_content The original block content.
-	 * @param array  $block The block data.
+	 * @param mixed $block_content The original block content.
+	 * @param mixed $block The block data.
+	 * @return mixed
 	 */
-	public function filter_no_products_block( string $block_content, array $block ): string {
-		if ( 'woocommerce/product-collection-no-results' !== $block['blockName'] ) {
+	public function filter_no_products_block( $block_content, $block ) {
+		if ( ! is_array( $block ) || 'woocommerce/product-collection-no-results' !== ( $block['blockName'] ?? '' ) ) {
 			return $block_content;
 		}
 

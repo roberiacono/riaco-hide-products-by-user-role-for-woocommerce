@@ -146,8 +146,10 @@ class Settings_Page implements ServiceInterface {
 	 * @param array $sections Existing sections.
 	 * @return array Modified sections.
 	 */
-	public function add_settings_section( array $sections ): array {
-		$count = count( get_option( $this->plugin->option_key, array() ) );
+	public function add_settings_section( $sections ) {
+		$sections = is_array( $sections ) ? $sections : array();
+		$rules    = get_option( $this->plugin->option_key, array() );
+		$count    = is_array( $rules ) ? count( $rules ) : 0;
 		$label = $count > 0
 			/* translators: %d: number of active rules */
 			? sprintf( esc_html__( 'Hide by User Roles (%d)', 'riaco-hide-products-by-user-role-for-woocommerce' ), $count )

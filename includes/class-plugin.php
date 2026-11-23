@@ -29,7 +29,7 @@ class Plugin {
 	 *
 	 * @var string
 	 */
-	public string $version = '1.1.1';
+	public string $version = '1.1.2';
 	/**
 	 * The main plugin file.
 	 *
@@ -124,11 +124,15 @@ class Plugin {
 	/**
 	 * Appends a review request to the admin footer on the plugin's settings page.
 	 *
-	 * @param string $text Existing footer text.
-	 * @return string
+	 * Not type-hinted: other plugins may return null/non-string values from
+	 * this filter, and a TypeError here would abort the admin footer (and all
+	 * footer scripts) on every admin screen.
+	 *
+	 * @param mixed $text Existing footer text.
+	 * @return mixed
 	 */
-	public function admin_footer_review_text( string $text ): string {
-		$screen = get_current_screen();
+	public function admin_footer_review_text( $text ) {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 
 		if (
 			! $screen ||
@@ -164,7 +168,8 @@ class Plugin {
 	 * @param array $links Existing action links.
 	 * @return array
 	 */
-	public function add_action_links( array $links ): array {
+	public function add_action_links( $links ) {
+		$links = is_array( $links ) ? $links : array();
 		$settings_url  = admin_url( 'admin.php?page=wc-settings&tab=products&section=riaco_hpburfw_rules' );
 		$settings_link = '<a href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Settings', 'riaco-hide-products-by-user-role-for-woocommerce' ) . '</a>';
 		array_unshift( $links, $settings_link );

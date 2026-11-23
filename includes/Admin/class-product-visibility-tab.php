@@ -68,7 +68,8 @@ class Product_Visibility_Tab implements ServiceInterface {
 	 *
 	 * @param array $tabs Existing tabs.
 	 */
-	public function add_tab( array $tabs ): array {
+	public function add_tab( $tabs ) {
+		$tabs = is_array( $tabs ) ? $tabs : array();
 		$tabs['riaco_visibility'] = array(
 			'label'    => esc_html__( 'Hide by Role', 'riaco-hide-products-by-user-role-for-woocommerce' ),
 			'target'   => 'riaco_hpburfw_hide_by_role_tab',
